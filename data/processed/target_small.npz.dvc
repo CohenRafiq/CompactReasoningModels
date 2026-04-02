@@ -1,0 +1,5 @@
+outs:
+- md5: 63b0ceab4ac99377b9229e48ab503ede
+  size: 170436
+  hash: md5
+  path: target_small.npz
