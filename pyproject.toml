@@ -1,0 +1,30 @@
+[project]
+authors = [{name = "CohenRafiq", email = "cohen.rafiq@gmail.com"}]
+dependencies = []
+name = "CompactReasoningModels"
+requires-python = ">= 3.11"
+version = "0.1.0"
+
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling"]
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[tool.pixi.dependencies]
+dvc = ">=3.67.0,<4"
+jupyter = ">=1.1.1,<2"
+numpy = ">=2.4.3,<4"
+pandas = ">=3.0.2,<4"
+ipykernel = ">=7.2.0,<8"
+
+[tool.pixi.pypi-dependencies]
+torch = { version = ">=2.5.1", index = "https://download.pytorch.org/whl/cu128" }
+CompactReasoningModels = { path = ".", editable = true }
+
+[tool.pixi.activation]
+env = { PYTHONPATH = "$PIXI_PROJECT_ROOT:$PYTHONPATH" }
+
+[tool.pixi.tasks]

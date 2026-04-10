@@ -40,17 +40,10 @@
 - [ ] **Pre-commit**: auto-run on every commit
 - [ ] **Nbstripout**: clean notebook outputs before git
 
-### Testing
-- [ ] **Unit tests**: data shapes, model forward/backward, metric correctness
-- [ ] **Integration tests**: full pipeline on tiny data
-- [ ] **Regression tests**: known failure cases
-- [ ] **CI**: run fast tests on PR, slow tests on schedule
-
 ### Documentation
 - [ ] Root README: install, quickstart, project overview
 - [ ] `docs/architecture.md`: system design with diagrams
 - [ ] `docs/experiments/`: dated experiment logs
-- [ ] Docstrings: Google or NumPy style, generate API docs
 
 ### Safety & Validation
 - [ ] Data schemas (validate on load)
