@@ -1,0 +1,5 @@
+# @package _global_
+model:
+  _target_: src.models.simple_nn.SimpleNeuralNetwork
+  hidden_size: 32
+  num_layers: 2

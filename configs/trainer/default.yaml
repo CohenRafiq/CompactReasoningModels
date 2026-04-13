@@ -1,0 +1,4 @@
+# @package _global_
+trainer:
+  _target_: src.training.trainer.Trainer
+  epochs: 20

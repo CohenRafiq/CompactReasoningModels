@@ -1,0 +1,57 @@
+_wandb:
+    value:
+        cli_version: 0.25.1
+        code_path: code/scripts/train.py
+        e:
+            ehrh5xztw73de8d168ghjdnvkjwkbvd4:
+                codePath: scripts/train.py
+                codePathLocal: scripts/train.py
+                cpu_count: 10
+                cpu_count_logical: 20
+                cudaVersion: "12.8"
+                disk:
+                    /:
+                        total: "1081101176832"
+                        used: "34842558464"
+                email: cohen.rafiq@gmail.com
+                executable: /home/cohen/PhD/CompactReasoningModels/.pixi/envs/default/bin/python
+                git:
+                    commit: 7214d3d988b1792963420d1ab2ee45d574ef8da4
+                    remote: git@github.com:CohenRafiq/CompactReasoningModels.git
+                gpu: NVIDIA GeForce RTX 4050 Laptop GPU
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Ada
+                      memoryTotal: "6439305216"
+                      name: NVIDIA GeForce RTX 4050 Laptop GPU
+                      uuid: GPU-984f97ab-da0c-da25-8c5b-a2597fa793dc
+                host: Mitsuba
+                memory:
+                    total: "8232546304"
+                os: Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39
+                program: /home/cohen/PhD/CompactReasoningModels/scripts/train.py
+                python: CPython 3.13.13
+                root: /home/cohen/PhD/CompactReasoningModels
+                startedAt: "2026-04-13T07:06:01.192751Z"
+                writerId: ehrh5xztw73de8d168ghjdnvkjwkbvd4
+        m: []
+        python_version: 3.13.13
+        t:
+            "1":
+                - 1
+                - 50
+                - 105
+            "2":
+                - 1
+                - 50
+                - 105
+            "3":
+                - 1
+                - 2
+                - 15
+                - 16
+                - 61
+            "4": 3.13.13
+            "5": 0.25.1
+            "12": 0.25.1
+            "13": linux-x86_64

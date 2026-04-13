@@ -1,0 +1,62 @@
+Starting training...
+Epoch 0: Loss=0.6050, Acc=0.0000
+Epoch 1: Loss=0.5948, Acc=0.0010
+Epoch 2: Loss=0.5943, Acc=0.0035
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 0 that is less than the current step 125. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 1 that is less than the current step 250. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 2 that is less than the current step 375. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+Epoch 3: Loss=0.5959, Acc=0.0027
+Epoch 4: Loss=0.6009, Acc=0.0018
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 3 that is less than the current step 500. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 4 that is less than the current step 625. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+Epoch 5: Loss=0.6059, Acc=0.0013
+Epoch 6: Loss=0.6106, Acc=0.0002
+Epoch 7: Loss=0.6171, Acc=0.0004
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 5 that is less than the current step 750. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 6 that is less than the current step 875. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 7 that is less than the current step 1000. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+Epoch 8: Loss=0.6196, Acc=0.0002
+Epoch 9: Loss=0.6253, Acc=0.0000
+Epoch 10: Loss=0.6342, Acc=0.0001
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 8 that is less than the current step 1125. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 9 that is less than the current step 1250. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 10 that is less than the current step 1375. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+Epoch 11: Loss=0.6411, Acc=0.0000
+Epoch 12: Loss=0.6446, Acc=0.0001
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 11 that is less than the current step 1500. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 12 that is less than the current step 1625. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+Epoch 13: Loss=0.6453, Acc=0.0000
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 13 that is less than the current step 1750. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+Epoch 14: Loss=0.6544, Acc=0.0000
+Epoch 15: Loss=0.6642, Acc=0.0000
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 14 that is less than the current step 1875. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 15 that is less than the current step 2000. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+Epoch 16: Loss=0.6635, Acc=0.0000
+Epoch 17: Loss=0.6749, Acc=0.0000
+Epoch 18: Loss=0.6711, Acc=0.0000
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 16 that is less than the current step 2125. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 17 that is less than the current step 2250. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 18 that is less than the current step 2375. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+Epoch 19: Loss=0.6894, Acc=0.0000
+Epoch 20: Loss=0.6856, Acc=0.0000
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 19 that is less than the current step 2500. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 20 that is less than the current step 2625. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+Epoch 21: Loss=0.7140, Acc=0.0000
+Epoch 22: Loss=0.6959, Acc=0.0000
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 21 that is less than the current step 2750. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 22 that is less than the current step 2875. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+Epoch 23: Loss=0.6876, Acc=0.0000
+Epoch 24: Loss=0.6985, Acc=0.0000
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 23 that is less than the current step 3000. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 24 that is less than the current step 3125. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+Epoch 25: Loss=0.7152, Acc=0.0000
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 25 that is less than the current step 3250. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+Epoch 26: Loss=0.7152, Acc=0.0000
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 26 that is less than the current step 3375. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+Epoch 27: Loss=0.7168, Acc=0.0000
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 27 that is less than the current step 3500. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+Epoch 28: Loss=0.7161, Acc=0.0000
+[34m[1mwandb[0m: [33mWARNING[0m Tried to log to step 28 that is less than the current step 3625. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+Epoch 29: Loss=0.7257, Acc=0.0000
+
+Final Loss: 0.7271, Final Accuracy: 0.0000

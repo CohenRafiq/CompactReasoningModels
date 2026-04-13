@@ -1,0 +1,4 @@
+# @package _global_
+dataloader:
+  _target_: torch.utils.data.DataLoader
+  batch_size: 32

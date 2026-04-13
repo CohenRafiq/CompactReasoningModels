@@ -7,12 +7,12 @@ class SimpleNeuralNetwork(BaseModel):
     """
     A simple feedforward neural network for nonogram solving.
     """
-    def __init__(self, input_size: int, hidden_size: int, output_size: int, num_layers: int = 2):
+    def __init__(self, input_size: int, output_size: int, hidden_size: int, num_layers: int = 2):
         super().__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.output_size = output_size
-        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.fc1 = nn.Linear(self.input_size, hidden_size)
         self.relu = nn.ReLU()
         self.layers = nn.ModuleList()
         self.batch_norms = nn.ModuleList()
@@ -20,7 +20,7 @@ class SimpleNeuralNetwork(BaseModel):
             self.layers.append(nn.Linear(hidden_size, hidden_size))
             self.batch_norms.append(nn.BatchNorm1d(hidden_size))
 
-        self.fc2 = nn.Linear(hidden_size, output_size)
+        self.fc2 = nn.Linear(hidden_size, self.output_size)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x: Tensor) -> Tensor:

@@ -1,64 +1,84 @@
 import torch
+from typing import Any, Optional, Any
 
 class Trainer:
-    def __init__(self, model, train_loader, test_loader, loss_fn, optimizer, device, epochs=10):
+    def __init__(
+        self,
+        model: torch.nn.Module,
+        train_loader: torch.utils.data.DataLoader,
+        test_loader: torch.utils.data.DataLoader,
+        criterion: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        device: str,
+        epochs: int = 20,
+        logger: Optional[Any] = None  # W&B or Null logger
+    ):
         self.model = model
         self.train_loader = train_loader
         self.test_loader = test_loader
-        self.loss_fn = loss_fn
+        self.criterion = criterion
         self.optimizer = optimizer
-        self.epochs = epochs
         self.device = device
-
-    def train(self):
+        self.epochs = epochs
+        self.logger = logger
+        
+        # Watch model if logger supports it
+        if hasattr(logger, 'watch_model'):
+            logger.watch_model(model)
+    
+    def train(self, log_every: int = 10):
+        print("Starting training...")
+        self.model.train()
+        
         for epoch in range(self.epochs):
-            total_loss = 0
-            self.model.train()
-            for batch in self.train_loader:
-                inputs, targets = batch
+            epoch_loss = 0.0
+            
+            for batch_idx, (inputs, targets) in enumerate(self.train_loader):
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
-
+                
                 self.optimizer.zero_grad()
                 outputs = self.model(inputs)
-                loss = self.loss_fn(outputs, targets)
+                loss = self.criterion(outputs, targets)
                 loss.backward()
                 self.optimizer.step()
-
-                total_loss += loss.item()
+                
+                epoch_loss += loss.item()
+                
+                # Log without step - W&B auto-increments
+                if batch_idx % log_every == 0 and self.logger:
+                    self.logger.log_metrics({
+                        "batch_loss": loss.item(),
+                        "epoch": epoch,
+                        "batch": batch_idx
+                    })  # No step parameter!
             
-            avg_loss = total_loss / len(self.train_loader)
-            test_loss = self.test()
-            print(f"Epoch [{epoch+1}/{self.epochs}], Train Loss: {avg_loss:.4f}, Test Loss: {test_loss:.4f}")
-        return avg_loss
-
-    def test(self):
-        self.model.eval()
-        total_loss = 0
-        with torch.no_grad():
-            for batch in self.test_loader:
-                inputs, targets = batch
-                inputs, targets = inputs.to(self.device), targets.to(self.device)
-
-                outputs = self.model(inputs)
-                loss = self.loss_fn(outputs, targets)
-                total_loss += loss.item()
-        
-        avg_loss = total_loss / len(self.test_loader)
-        return avg_loss
+            # Log epoch metrics - no step parameter
+            avg_loss = epoch_loss / len(self.train_loader)
+            test_acc, test_loss = self.test()
+            
+            if self.logger:
+                self.logger.log_metrics({
+                    "train_loss": avg_loss,
+                    "test_loss": test_loss,
+                    "test_accuracy": test_acc,
+                    "epoch": epoch
+                })  # No step parameter!
+            
+            print(f"Epoch {epoch}: Loss={avg_loss:.4f}, Acc={test_acc:.4f}")
     
-    def test_accuracy(self):
+    def test(self) -> tuple[float, float]:
         self.model.eval()
         correct = 0
         total = 0
+        total_loss = 0
         with torch.no_grad():
-            for batch in self.test_loader:
-                inputs, targets = batch
+            for inputs, targets in self.test_loader:
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
-
                 outputs = self.model(inputs)
-                predicted = (torch.sigmoid(outputs) > 0.5).float()
-                correct += (predicted == targets).all(dim=1).sum().item()
+
+                predictions = (torch.sigmoid(outputs) > 0.5).float()
+                correct += (predictions == targets).all(dim=1).sum().item()
                 total += targets.size(0)
-        
-        accuracy = correct / total
-        return accuracy
+                loss = self.criterion(outputs, targets)
+                total_loss += loss.item()
+        return correct / total if total > 0 else 0.0, total_loss / len(self.test_loader)

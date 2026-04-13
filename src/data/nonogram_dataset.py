@@ -16,24 +16,35 @@ class NonogramDataset(BaseDataset):
         self.nonogram_size = nonogram_size
         self.flat = flat
 
-        # Input shape
+        # Input shape (per sample): 
         #    - 2 channels: one for row clues, one for column clues
         #    - Each row/column has nonogram_size clues
-        #    - each clue is represented with multiple numbers (for a 5x5, max clue is [1,1,1])
-        input_shape = (2, nonogram_size, (nonogram_size + 1) // 2)
-        target_shape = (nonogram_size, nonogram_size)
-        super().__init__(input_path, target_path, input_shape, target_shape, flat)
+        #    - each clue is represented with multiple numbers
+        self._x_shape = (2, nonogram_size, (nonogram_size + 1) // 2)
+        self._y_shape = (nonogram_size, nonogram_size)
+        
+        super().__init__(input_path, target_path, flat)
 
-    def __import_inputs__(self, path: Path | str) -> Tensor:
+    @property
+    def X_shape(self) -> tuple:
+        """Shape of X tensor: (n_samples, *sample_shape)"""
+        return self.X.shape if self.X is not None else None
+    
+    @property
+    def y_shape(self) -> tuple:
+        """Shape of y tensor: (n_samples, *sample_shape)"""
+        return self.y.shape if self.y is not None else None
+
+    def _import_inputs(self, path: Path) -> Tensor:
         inputs = np.load(path)['arr_0']
         num_samples = inputs.shape[0]
-        self.input_shape = (num_samples,) + self.input_shape
-        inputs = inputs.reshape(self.input_shape)
+        x_shape_with_samples = (num_samples,) + self._x_shape
+        inputs = inputs.reshape(x_shape_with_samples)
         return torch.tensor(inputs, dtype=torch.float32)
 
-    def __import_targets__(self, path: Path | str) -> Tensor:
+    def _import_targets(self, path: Path) -> Tensor:
         targets = np.load(path)['arr_0']
         num_samples = targets.shape[0]
-        self.target_shape = (num_samples,) + self.target_shape
-        targets = targets.reshape(self.target_shape)
+        y_shape_with_samples = (num_samples,) + self._y_shape
+        targets = targets.reshape(y_shape_with_samples)
         return torch.tensor(targets, dtype=torch.float32)

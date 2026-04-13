@@ -1,0 +1,12 @@
+defaults:
+  - data: nonogram_5x5_small
+  - model: simple_nn
+  - optimizer: adam
+  - criterion: bce
+  - split: random_split
+  - logger: wandb
+  - trainer: default
+  - dataloader: default
+  - _self_
+
+seed: 42
