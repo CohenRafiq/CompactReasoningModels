@@ -1,0 +1,8 @@
+# @package _global_
+logger:
+  _target_: src.utils.logging.WandbLogger
+  project: ${wandb_project}
+  name: null
+  group: null
+  tags: []
+  should_log_model: true

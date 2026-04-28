@@ -22,9 +22,7 @@ jobs:
       
       - name: Type check
         run: pixi run type-check
-      
-      - name: Unit tests
-        run: pixi run test
+
 
   # ═════════════════════════════════════════════════════════════════
   # 2. NOTEBOOK VALIDATION

@@ -1,0 +1,7 @@
+# @package _global_
+data:
+  _target_: src.data.nonogram_dataset.NonogramDataset
+  input_path: "raw/nonogram_5x5_x.npy"
+  target_path: "raw/nonogram_5x5_y.npy"
+  nonogram_size: 5
+  flat: true

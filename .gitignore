@@ -1,3 +1,17 @@
 # pixi environments
 .pixi/*
 !.pixi/config.toml
+
+data/raw/*
+data/processed/*
+data/transformed/*
+models/*
+outputs/*
+
+# Keep the folders (don't ignore the .gitkeep files)
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/transformed/.gitkeep
+
+# Wandb
+wandb/

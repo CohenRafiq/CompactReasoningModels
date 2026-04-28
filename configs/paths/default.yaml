@@ -1,0 +1,5 @@
+# @package _global_
+paths:
+  data_dir: "../data"
+  processed_dir: "${paths.data_dir}/processed"
+  logs_dir: "./logs"
