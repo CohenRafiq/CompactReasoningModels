@@ -2,6 +2,7 @@ from torch.utils.data import Dataset
 from abc import ABC, abstractmethod
 from pathlib import Path
 from torch import Tensor
+import os
 
 
 class BaseDataset(Dataset, ABC):
@@ -14,8 +15,14 @@ class BaseDataset(Dataset, ABC):
             target_path: Path | str,
             flat: bool = False):
         super().__init__()
-        self.input_path = Path(input_path)
-        self.target_path = Path(target_path)
+        data_dir = os.environ.get("DATA_DIR")
+        if data_dir:
+            self.input_path = Path(data_dir) / Path(input_path)
+            self.target_path = Path(data_dir) / Path(target_path)
+        else:
+            self.input_path = Path("data") / Path(input_path)
+            self.target_path = Path("data") / Path(target_path)
+
         self.flat = flat
 
         self.X = self._import_inputs(self.input_path)

@@ -23,9 +23,14 @@ class WandbLogger:
         self.should_log_model = should_log_model
         self.config = config or {}
         self.run = None
-        
-    def setup(self):
+    
+    def setup(self, cfg=None):
         """Initialize W&B run"""
+        run_config = {**self.config}
+        if cfg is not None:
+            from omegaconf import OmegaConf
+            run_config.update(OmegaConf.to_container(cfg, resolve=True))
+
         self.run = wandb.init(
             project=self.project,
             entity=self.entity,
@@ -33,7 +38,7 @@ class WandbLogger:
             tags=self.tags,
             group=self.group,
             save_code=self.save_code,
-            config=self.config
+            config=run_config
         )
         return self.run
     
@@ -61,7 +66,7 @@ class WandbLogger:
 
 class NullLogger:
     """No-op logger for when you don't want logging"""
-    def setup(self): pass
+    def setup(self, cfg=None): pass
     def log_metrics(self, *args, **kwargs): pass
     def log_model(self, *args, **kwargs): pass
     def watch_model(self, *args, **kwargs): pass

@@ -12,3 +12,6 @@ outputs/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/transformed/.gitkeep
+
+# Wandb
+wandb/

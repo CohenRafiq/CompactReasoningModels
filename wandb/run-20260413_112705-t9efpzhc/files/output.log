@@ -1,6 +1,0 @@
-Error executing job with overrides: []
-Error in call to target 'torch.utils.data.dataset.random_split':
-TypeError("random_split() got an unexpected keyword argument 'generator_seed'")
-full_key: split
-
-Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.

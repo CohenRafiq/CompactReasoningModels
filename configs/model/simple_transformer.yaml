@@ -1,0 +1,7 @@
+# @package _global_
+model:
+  _target_: src.models.simple_transformer.SimpleTransformer
+  hidden_size: 512
+  num_layers: 12
+  num_heads: 8
+  dropout: 0.1

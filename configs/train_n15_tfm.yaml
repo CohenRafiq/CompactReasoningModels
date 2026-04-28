@@ -1,0 +1,14 @@
+defaults:
+  - data: nonogram_15x15
+  - model: simple_transformer
+  - optimizer: adam
+  - criterion: bce
+  - split: random_split
+  - logger: wandb
+  - trainer: default
+  - dataloader: default
+  - scheduler: cosine_annealing
+  - _self_
+
+seed: 42
+wandb_project: "nonograms_15x15"

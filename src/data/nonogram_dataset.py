@@ -36,14 +36,14 @@ class NonogramDataset(BaseDataset):
         return self.y.shape if self.y is not None else None
 
     def _import_inputs(self, path: Path) -> Tensor:
-        inputs = np.load(path)['arr_0']
+        inputs = np.load(path)
         num_samples = inputs.shape[0]
         x_shape_with_samples = (num_samples,) + self._x_shape
         inputs = inputs.reshape(x_shape_with_samples)
         return torch.tensor(inputs, dtype=torch.float32)
 
     def _import_targets(self, path: Path) -> Tensor:
-        targets = np.load(path)['arr_0']
+        targets = np.load(path)
         num_samples = targets.shape[0]
         y_shape_with_samples = (num_samples,) + self._y_shape
         targets = targets.reshape(y_shape_with_samples)
