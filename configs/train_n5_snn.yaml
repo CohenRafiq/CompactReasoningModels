@@ -1,11 +1,11 @@
 defaults:
-  - data: nonogram_5x5
+  - data: nonogram_5x5_reward
   - model: simple_nn
   - optimizer: adam
-  - criterion: bce
+  - criterion: nonogram
   - split: random_split
   - logger: wandb
-  - trainer: default
+  - trainer: reward
   - dataloader: default
   - scheduler: cosine_annealing
   - _self_

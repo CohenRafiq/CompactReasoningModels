@@ -2,7 +2,7 @@ import torch
 from typing import Any, Optional, Any
 import time
 
-class Trainer:
+class SupervisedTrainer:
     def __init__(
         self,
         model: torch.nn.Module,

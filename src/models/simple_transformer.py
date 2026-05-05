@@ -1,13 +1,10 @@
 import math
-
 import torch
 import torch.nn as nn
 from torch import Tensor
 
-from src.models.base import BaseModel
 
-
-class SimpleTransformer(BaseModel):
+class SimpleTransformer(nn.Module):
     """
     A simple Transformer encoder model that mirrors the SimpleNeuralNetwork interface.
     """

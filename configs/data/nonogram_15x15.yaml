@@ -1,7 +1,6 @@
 # @package _global_
 data:
-  _target_: src.data.nonogram_dataset.NonogramDataset
-  input_path: "raw/nonogram_15x15_x.npy"
-  target_path: "raw/nonogram_15x15_y.npy"
-  nonogram_size: 15
+  _target_: src.data.puzzle_dataset.PuzzleDataset
+  input_path: "processed/nonogram_15x15_x.npy"
+  target_path: "processed/nonogram_15x15_y.npy"
   flat: true

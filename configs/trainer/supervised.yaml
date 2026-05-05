@@ -1,6 +1,6 @@
 # @package _global_
 trainer:
-  _target_: src.training.trainer.Trainer
+  _target_: src.training.supervised_trainer.SupervisedTrainer
   epochs: 30
   early_stopping_patience: 5
   early_stopping_min_delta: 1e-4

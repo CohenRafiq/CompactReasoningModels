@@ -2,5 +2,5 @@
 data:
   _target_: src.data.puzzle_dataset.PuzzleDataset
   input_path: "processed/nonogram_5x5_x.npy"
-  target_path: "processed/nonogram_5x5_y.npy"
+  target_shape: [5, 5]
   flat: true

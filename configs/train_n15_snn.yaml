@@ -5,7 +5,7 @@ defaults:
   - criterion: bce
   - split: random_split
   - logger: wandb
-  - trainer: default
+  - trainer: supervised
   - dataloader: default
   - scheduler: cosine_annealing
   - _self_

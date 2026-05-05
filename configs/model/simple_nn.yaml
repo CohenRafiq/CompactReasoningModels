@@ -1,6 +1,6 @@
 # @package _global_
 model:
   _target_: src.models.simple_nn.SimpleNeuralNetwork
-  hidden_size: 512
-  num_layers: 12
+  hidden_size: 128
+  num_layers: 6
   dropout: 0.3

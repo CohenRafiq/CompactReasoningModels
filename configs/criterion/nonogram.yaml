@@ -1,0 +1,4 @@
+# @package _global_
+criterion:
+  _target_: src.data.criterion.nonogram.NonogramLoss
+  tau: 0.3

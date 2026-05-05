@@ -21,8 +21,8 @@ def main(cfg: DictConfig):
 
     model = instantiate(
         cfg.model,
-        input_size=dataset.X_shape[1],
-        output_size=dataset.y_shape[1],
+        input_size=dataset.input_shape,
+        output_size=dataset.target_shape,
     ).to(device)
 
     if torch.cuda.device_count() > 1:

@@ -1,9 +1,8 @@
 import torch
-from src.models.base import BaseModel
 from torch import Tensor
 from torch import nn
 
-class SimpleNeuralNetwork(BaseModel):
+class SimpleNeuralNetwork(nn.Module):
     """
     A simple feedforward neural network for nonogram solving.
     """
