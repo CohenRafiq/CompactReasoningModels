@@ -15,10 +15,8 @@ class SimpleNeuralNetwork(nn.Module):
         self.fc1 = nn.Linear(self.input_size, hidden_size)
         self.relu = nn.ReLU()
         self.layers = nn.ModuleList()
-        self.batch_norms = nn.ModuleList()
         for _ in range(num_layers - 1):
             self.layers.append(nn.Linear(hidden_size, hidden_size))
-            self.batch_norms.append(nn.BatchNorm1d(hidden_size))
 
         self.fc2 = nn.Linear(hidden_size, self.output_size)
         self.sigmoid = nn.Sigmoid()
@@ -27,10 +25,8 @@ class SimpleNeuralNetwork(nn.Module):
         out = self.fc1(x)
         out = self.relu(out)
         out = self.dropout(out)
-        for layer, batch_norm in zip(self.layers, self.batch_norms):
-            out = layer(out)
-            out = batch_norm(out)
-            out = self.relu(out)
+        for layer in self.layers:
+            out = out + self.relu(layer(out))  # residual: preserve input, add transformation
             out = self.dropout(out)
         out = self.fc2(out)
         out = self.sigmoid(out)

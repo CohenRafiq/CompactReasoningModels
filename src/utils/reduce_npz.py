@@ -24,5 +24,4 @@ def sample_npz(input_path, output_path, n_samples, seed=42):
     return sampled
 
 # Usage
-sample_npz('data/raw/train_combined.npz', 'data/processed/train_small.npz', n_samples=50000)
 sample_npz('data/raw/target_combined.npz', 'data/processed/target_small.npz', n_samples=50000)

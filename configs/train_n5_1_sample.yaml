@@ -1,0 +1,14 @@
+defaults:
+  - data: nonogram_5x5_reward_1_sample
+  - model: simple_nn
+  - optimizer: adam
+  - criterion: nonogram
+  - split: random_split
+  - logger: wandb
+  - trainer: reward
+  - dataloader: 1_sample
+  - scheduler: cosine_annealing
+  - _self_
+
+seed: 42
+wandb_project: "nonogram_1_sample"

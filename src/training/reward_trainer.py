@@ -3,7 +3,7 @@ from typing import Any, Optional, Tuple
 
 import torch
 from torch.utils.data import DataLoader
-from src.data.criterion.nonogram import soft_run_lengths
+from src.data.criterion.nonogram import grid_to_row_clues
 
 
 class RewardTrainer:
@@ -39,6 +39,24 @@ class RewardTrainer:
         if hasattr(logger, "watch_model"):
             logger.watch_model(model)
 
+    def _test_fixed_example(self):
+        print("\n🔍 Testing on a fixed example to inspect outputs and clue matching...")
+        example_clues = torch.tensor([[[[2,1,0], [2,1,0], [4,0,0], [0,0,0], [1,0,0]], [[1,0,0], [3,1,0], [1,1,0], [2,0,0], [1,1,0]]]], dtype=torch.float32).to(self.device)  # shape: (1, 2, 5, 3)
+        example_clues = example_clues.flatten(start_dim=1)
+        # Print Output grid, predicted clues, loss, and clue match percentage for a fixed example
+        with torch.no_grad():
+            output = self.model(example_clues)
+            loss, row_loss, col_loss = self.criterion(output, example_clues)
+            clue_match_pct = self._run_length_match(output, example_clues) * 100
+            print(f"Output grid:\n{output.reshape(5,5)}")
+            print(f"Predicted row clues:\n{grid_to_row_clues(output.reshape(1, 5, 5), K=3)}")
+            print(f"Predicted column clues:\n{grid_to_row_clues(output.reshape(1, 5, 5).transpose(1, 2), K=3)}")
+            print(loss)
+            print(type(loss))
+            print(loss.item())
+            print(f"Loss: {loss.item():.4f} | Clue match percentage: {clue_match_pct:.2f}%")
+            print(f"Row loss: {row_loss.item():.4f} | Column loss: {col_loss.item():.4f}")
+            
     # ------------------------------------------------------------------
     # Metric: run‑length match (clue‑match)
     # ------------------------------------------------------------------
@@ -53,7 +71,7 @@ class RewardTrainer:
         side = math.isqrt(logits.shape[1])
 
         # Binary grid: (N, H, W)
-        binary = (torch.sigmoid(logits) > 0.5).float().reshape(N, side, side)
+        binary = (logits > 0.5).float().reshape(N, side, side)
 
         # Recover clue tensors from flat inputs: (N, 2, H, max_runs)
         clues_reshaped = inputs.reshape(N, 2, side, -1)
@@ -64,13 +82,13 @@ class RewardTrainer:
         max_col_runs = col_clues.shape[2]
 
         # Separate calls for rows and columns
-        pred_row = soft_run_lengths(binary,              max_row_runs, tau=tau)  # (N, H, max_row_runs)
-        pred_col = soft_run_lengths(binary.transpose(1, 2), max_col_runs, tau=tau)  # (N, W, max_col_runs)
+        pred_row = grid_to_row_clues(binary, max_row_runs)  # (N, H, max_row_runs)
+        pred_col = grid_to_row_clues(binary.transpose(1, 2), max_col_runs)  # (N, W, max_col_runs)
 
         row_match = (pred_row.round() == row_clues).all(dim=2).float()
         col_match = (pred_col.round() == col_clues).all(dim=2).float()
 
-        return (row_match.mean() + col_match.mean()) / 2.0
+        return (row_match.mean(dim=1) + col_match.mean(dim=1)) / 2.0
 
     # ------------------------------------------------------------------
     # Training loop
@@ -81,22 +99,27 @@ class RewardTrainer:
             self.model.train()
             epoch_loss = 0.0
             start = time.time()
+            total_data_load_time = 0.0
+            total_gpu_transfer_time = 0.0
+            total_batch_time = 0.0
 
             for batch_idx, inputs in enumerate(self.train_loader):
                 # ---------------------------------------------------------
                 # 1️⃣  Move everything to the correct device
                 # ---------------------------------------------------------
                 data_load_time = time.time() - start
+                total_data_load_time += data_load_time
                 inputs = inputs.to(self.device)
 
                 gpu_transfer_time = time.time() - start - data_load_time
+                total_gpu_transfer_time += gpu_transfer_time
 
                 # ---------------------------------------------------------
                 # 2️⃣  Forward / loss / backward
                 # ---------------------------------------------------------
                 self.optimizer.zero_grad()
                 outputs = self.model(inputs)
-                loss = self.criterion(outputs, inputs)
+                loss, _, _ = self.criterion(outputs, inputs)
                 loss.backward()
                 self.optimizer.step()
 
@@ -118,6 +141,7 @@ class RewardTrainer:
                 # 4️⃣  Timing bookkeeping
                 # ---------------------------------------------------------
                 batch_time = time.time() - start
+                total_batch_time += batch_time
                 start = time.time()          # reset for next iteration
 
             # -------------------------------------------------------------
@@ -130,12 +154,12 @@ class RewardTrainer:
             # 6️⃣  Epoch‑level reporting
             # -------------------------------------------------------------
             print(
-                f"Load: {data_load_time:.3f}s | Transfer: {gpu_transfer_time:.3f}s | Total: {batch_time:.3f}s"
+                f"Load: {total_data_load_time:.3f}s | Transfer: {total_gpu_transfer_time:.3f}s | Total: {total_batch_time:.3f}s"
             )
             avg_train_loss = epoch_loss / len(self.train_loader)
 
             # Updated test call – now returns (accuracy, loss, clue_match_percent)
-            test_acc, test_loss, clue_match_pct = self.test()
+            test_acc, test_loss, clue_match_pct, row_loss, col_loss = self.test()
 
             if self.logger:
                 self.logger.log_metrics(
@@ -144,13 +168,15 @@ class RewardTrainer:
                         "test_loss": test_loss,
                         "test_accuracy": test_acc,
                         "clue_match_percent": clue_match_pct,
+                        "row_loss": row_loss,
+                        "col_loss": col_loss,
                         "epoch": epoch,
                     }
                 )
 
             print(
                 f"Epoch {epoch:02d} | Train loss: {avg_train_loss:.4f} "
-                f"| Test loss: {test_loss:.4f} | Test accuracy: {test_acc:.3%} "
+                f"| Test loss: {test_loss:.4f} | Test accuracy: {test_acc * 100:.3%} "
                 f"| Clue‑match: {clue_match_pct:.2f}%"
             )
 
@@ -165,6 +191,7 @@ class RewardTrainer:
                     self.epochs_no_improve += 1
                     if self.epochs_no_improve >= self.patience:
                         print(f"🛑 Early stopping triggered at epoch {epoch}")
+                        self._test_fixed_example()
                         return
 
     # ------------------------------------------------------------------
@@ -190,28 +217,29 @@ class RewardTrainer:
         total_loss = 0.0
         total_clue_match = 0.0
         total_samples = 0
+        total_row_loss = 0.0
+        total_col_loss = 0.0
 
         with torch.no_grad():
             for inputs in self.test_loader:
                 inputs = inputs.to(self.device)
-
                 prediction = self.model(inputs)
 
-                # ---- loss -------------------------------------------------
-                loss = self.criterion(prediction, inputs)
+                loss, row_loss, col_loss = self.criterion(prediction, inputs)
                 total_loss += loss.item()
+                total_row_loss += row_loss.item()
+                total_col_loss += col_loss.item()
 
-                # ---- clue‑match (run‑length) -------------------------------
-                clue_match = self._run_length_match(prediction, inputs)  # scalar in [0,1]
-                total_clue_match += clue_match
-                # correct only if clue match is 100% (i.e. all clues match)
-                correct_per_sample = (clue_match == 1.0).float().sum()
-                total_correct += correct_per_sample
+                clue_match = self._run_length_match(prediction, inputs)  # (N,)
+                total_clue_match += clue_match.sum().item()
+                total_correct += (clue_match == 1.0).sum().item()
                 total_samples += inputs.size(0)
 
-        # Guard against division by zero
-        test_accuracy = total_correct / total_samples if total_samples else 0.0
-        test_loss = total_loss / (total_samples / inputs.size(0)) if total_samples else 0.0
-        clue_match_percent = (total_clue_match / (total_samples / inputs.size(0))) * 100 if total_samples else 0.0
+        n_batches = len(self.test_loader)
+        test_accuracy = total_correct / total_samples
+        test_loss = total_loss / n_batches
+        row_loss = total_row_loss / n_batches
+        col_loss = total_col_loss / n_batches
+        clue_match_percent = total_clue_match / total_samples
 
-        return test_accuracy, test_loss, clue_match_percent
+        return test_accuracy, test_loss, clue_match_percent, row_loss, col_loss

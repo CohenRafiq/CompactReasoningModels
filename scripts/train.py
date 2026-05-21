@@ -3,6 +3,7 @@ from omegaconf import DictConfig
 from hydra.utils import instantiate
 import torch
 from src.utils.io import save_model
+from src.training.gradient_analyser import GradientAnalyser
 
 @hydra.main(version_base=None, config_path="../configs", config_name="train_n15")
 def main(cfg: DictConfig):
@@ -57,6 +58,10 @@ def main(cfg: DictConfig):
     optimizer = instantiate(cfg.optimizer, params=model.parameters())
 
     scheduler = instantiate(cfg.scheduler, optimizer=optimizer) if cfg.get("scheduler") else None
+
+    gradient_analyser = GradientAnalyser(model, criterion)
+    sample_inputs = next(iter(train_loader))
+    gradient_analyser.run_full_report(sample_inputs)
     
     # Train and evaluate the model
     try:
@@ -70,13 +75,19 @@ def main(cfg: DictConfig):
             device=device,
             logger=logger
         )
+        # During training — track drift
+        gradient_analyser.register_hooks()
         trainer.train()
+        gradient_analyser.remove_hooks()
+
         
-        final_acc, final_loss = trainer.test()
-        print(f"\nFinal Loss: {final_loss:.4f}, Final Accuracy: {final_acc:.4f}")
+        print(trainer.test())
         
         # Save the model
         save_model(cfg, model, logger)
+
+        # After training — review what happened
+        gradient_analyser.print_summary()
         
     finally:
         # Ensure we finish the logger even if training fails

@@ -3,78 +3,52 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
-def soft_run_lengths(
-    grid: torch.Tensor,       # (B, num_lines, line_len), values in [0, 1]
-    max_runs: int,
-    tau: float = 0.5,
-) -> torch.Tensor:
+def grid_to_row_clues(grid, K):
     """
-    Differentiable extraction of soft run lengths.
+    grid: Tensor of shape [batch, num_lines, line_length]
+    K: Number of clues to extract per row
+    Returns: Tensor of shape [batch, num_lines, K]
+    """
+
+    shifted_right = torch.cat([torch.zeros_like(grid[..., :1]), grid[..., :-1]], dim=-1)
+    left_run_ends = grid * (1.0 - shifted_right)
+    cumulative_run_ends = torch.cumsum(left_run_ends, dim=-1)
     
-    Key fix vs. original: run_ends uses grid * (1 - right_neighbor) instead
-    of ReLU, which keeps gradients alive everywhere in [0,1]^2.
-    """
-    B, L, N = grid.shape
 
-    # Pad right with 0 so the last cell always terminates a run
-    padded = F.pad(grid, (0, 1))                        # (B, L, N+1)
-    right_neighbor = padded[:, :, 1:]                   # (B, L, N)  grid[i+1], 0 at boundary
+    clue_indices = torch.arange(1, K + 1, dtype=grid.dtype, device=grid.device)
+    
+    # 5. Build weights matrix
+    # cumulative_run_ends: [B, N, L] -> [B, N, L, 1]
+    # k: [K]       -> broadcasts to [B, N, L, K]
+    weights = torch.clamp(1.0 - torch.abs(cumulative_run_ends.unsqueeze(-1) - clue_indices), min=0.0)
+    
+    # 6. Apply weights and sum over the line_length dimension
+    # grid: [B, N, L] -> [B, N, L, 1]
+    # Result shape: [B, N, K]
+    return (grid.unsqueeze(-1) * weights).sum(dim=-2)
 
-    # Soft run-end indicator: high when cell is "on" and next cell is "off"
-    # Fully differentiable — no ReLU dead zones
-    run_ends = grid * (1.0 - right_neighbor)            # (B, L, N)
+def _nonogram_loss(grid, row_clues, col_clues, tau=0.3):
+    side = grid.shape[-1]  # 5 for a 5×5 grid
 
-    # Soft prefix count of filled cells
-    prefix_sums = grid.cumsum(dim=2)                    # (B, L, N)
-
-    # Weight prefix sums by where runs end
-    prefix_at_end = prefix_sums * run_ends              # (B, L, N)
-
-    # Soft rank: roughly "how many run-ends have occurred up to position m"
-    # Adding epsilon prevents the cumsum from assigning rank 0 to early ends
-    end_cumsum = run_ends.cumsum(dim=2)                 # (B, L, N)
-    # Shift by 0.5 so the first end gets rank ≈0.5, not ≈0 (avoids bucket collapse)
-    end_rank = (end_cumsum - 0.5 * run_ends) * run_ends # (B, L, N)
-
-    # Gaussian soft-assignment to run slots k = 1..max_runs
-    k_values = torch.arange(1, max_runs + 1, device=grid.device, dtype=grid.dtype)
-    # (B, L, N, max_runs)
-    rank_mask = torch.exp(
-        -(end_rank.unsqueeze(-1) - k_values) ** 2 / (2 * tau ** 2)
-    )
-    # Normalise per position so weights sum to 1 across slots (softmax-style)
-    rank_mask = rank_mask / (rank_mask.sum(dim=-1, keepdim=True) + 1e-8)
-
-    # Accumulate prefix lengths into each run slot
-    cumulative_lengths = torch.einsum("blm, blmk -> blk", prefix_at_end, rank_mask)
-
-    # Convert cumulative → per-run lengths
-    run_lengths = torch.diff(
-        cumulative_lengths,
-        prepend=torch.zeros(B, L, 1, device=grid.device, dtype=grid.dtype),
-        dim=-1,
-    )
-    return run_lengths          # (B, num_lines, max_runs)
-
-
-def _nonogram_loss(grid: torch.Tensor,
-                   row_clues: torch.Tensor,
-                   col_clues: torch.Tensor,
-                   tau: float = 0.3) -> torch.Tensor:
-
-    max_row_runs = row_clues.shape[2] 
+    max_row_runs = row_clues.shape[2]
     max_col_runs = col_clues.shape[2]
 
-    predicted_row_lengths = soft_run_lengths(grid, max_row_runs, tau)
-    row_loss = F.mse_loss(predicted_row_lengths, row_clues.float(),
-                          reduction='none')
+    predicted_row_lengths = grid_to_row_clues(grid, max_row_runs)
+    row_loss = F.mse_loss(
+        predicted_row_lengths / side,   # normalise
+        row_clues.float() / side,       # normalise
+        reduction='none'
+    )
 
-    predicted_col_lengths = soft_run_lengths(grid.transpose(1, 2),
-                                             max_col_runs, tau)
-    col_loss = F.mse_loss(predicted_col_lengths, col_clues.float(),
-                          reduction='none')
+    predicted_col_lengths = grid_to_row_clues(grid.transpose(1, 2), max_col_runs)
+    col_loss = F.mse_loss(
+        predicted_col_lengths / side,
+        col_clues.float() / side,
+        reduction='none'
+    )
 
-    return row_loss.mean(dim=[1, 2]) + col_loss.mean(dim=[1, 2])
+    per_sample = row_loss.mean(dim=[1, 2]) + col_loss.mean(dim=[1, 2])
+    return per_sample, row_loss.mean(dim=[1, 2]), col_loss.mean(dim=[1, 2])
 
 
 class NonogramLoss(nn.Module):
@@ -111,11 +85,11 @@ class NonogramLoss(nn.Module):
 
         row_clues = clues_reshaped[:, 0, :, :]   # shape: (N, grid.shape[1], X)
         col_clues = clues_reshaped[:, 1, :, :]   # shape: (N, grid.shape[1], X)
-        per_sample = _nonogram_loss(grid, row_clues, col_clues, self.tau)
+        per_sample, row_loss, col_loss = _nonogram_loss(grid, row_clues, col_clues, self.tau)
 
         if self.reduction == 'none':
-            return per_sample
+            return per_sample, row_loss, col_loss
         elif self.reduction == 'mean':
-            return per_sample.mean()
+            return per_sample.mean(), row_loss.mean(), col_loss.mean()
         else:  # 'sum'
-            return per_sample.sum()
+            return per_sample.sum(), row_loss.sum(), col_loss.sum()
