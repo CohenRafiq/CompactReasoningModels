@@ -16,11 +16,14 @@ class SimpleTransformer(nn.Module):
         hidden_size: int = 128,
         num_layers: int = 2,
         num_heads: int = 4,
-        num_patches: int = 4,
+        num_patches: int = None,
         ff_dim: int | None = None,
         dropout: float = 0.1,
     ):
         super().__init__()
+
+        if num_patches is None:
+            num_patches = input_size
 
         if input_size % num_patches != 0:
             raise ValueError(

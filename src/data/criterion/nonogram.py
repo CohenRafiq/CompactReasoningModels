@@ -34,8 +34,8 @@ def _nonogram_loss(grid, row_clues, col_clues, tau=0.3):
 
     predicted_row_lengths = grid_to_row_clues(grid, max_row_runs)
     row_loss = F.mse_loss(
-        predicted_row_lengths
-        row_clues.float()
+        predicted_row_lengths,
+        row_clues.float(),
         reduction='none'
     )
 
