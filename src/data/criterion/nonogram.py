@@ -9,7 +9,6 @@ def grid_to_row_clues(grid, K):
     K: Number of clues to extract per row
     Returns: Tensor of shape [batch, num_lines, K]
     """
-
     shifted_right = torch.cat([torch.zeros_like(grid[..., :1]), grid[..., :-1]], dim=-1)
     left_run_ends = grid * (1.0 - shifted_right)
     cumulative_run_ends = torch.cumsum(left_run_ends, dim=-1)
@@ -35,15 +34,15 @@ def _nonogram_loss(grid, row_clues, col_clues, tau=0.3):
 
     predicted_row_lengths = grid_to_row_clues(grid, max_row_runs)
     row_loss = F.mse_loss(
-        predicted_row_lengths / side,   # normalise
-        row_clues.float() / side,       # normalise
+        predicted_row_lengths
+        row_clues.float()
         reduction='none'
     )
 
     predicted_col_lengths = grid_to_row_clues(grid.transpose(1, 2), max_col_runs)
     col_loss = F.mse_loss(
-        predicted_col_lengths / side,
-        col_clues.float() / side,
+        predicted_col_lengths,
+        col_clues.float(),
         reduction='none'
     )
 

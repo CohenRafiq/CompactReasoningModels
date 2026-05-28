@@ -10,9 +10,8 @@ def _clues_torch(grid):
     col_clues = torch.stack([_row_torch(grid[:, j ], K_col) for j in range(W)])
     return row_clues, col_clues
 
-def _row_torch(x, K):
-    """Core differentiable clue computation for a 1-D PyTorch tensor."""
-    on      = torch.clamp(x, 0.0, 1.0)
+def _row_torch(x, K, alpha=10.0):
+    on      = torch.sigmoid(alpha * (x - 0.5))
     on_prev = torch.cat([x.new_zeros(1), on[:-1]])
     s       = on * (1.0 - on_prev)
     c       = torch.cumsum(s, dim=0)
