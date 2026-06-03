@@ -241,5 +241,6 @@ class RewardTrainer:
         row_loss = total_row_loss / n_batches
         col_loss = total_col_loss / n_batches
         clue_match_percent = total_clue_match / total_samples
+        self.model.train()
 
         return test_accuracy, test_loss, clue_match_percent, row_loss, col_loss

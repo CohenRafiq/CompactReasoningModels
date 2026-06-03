@@ -26,8 +26,8 @@ class SimpleNeuralNetwork(nn.Module):
         out = self.relu(out)
         out = self.dropout(out)
         for layer in self.layers:
-            out = out + self.relu(layer(out))  # residual: preserve input, add transformation
-            out = self.dropout(out)
+            out = out + layer(out)
+            out = self.relu(out)
         out = self.fc2(out)
         out = self.sigmoid(out)
         return out
