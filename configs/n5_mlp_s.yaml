@@ -1,13 +1,13 @@
 defaults:
-  - data: nonogram_5x5_reward
-  - model: simple_nn
+  - data: nng5x5
+  - model: mlp
   - optimizer: adam
-  - criterion: nonogram
+  - criterion: bce
   - split: random_split
   - logger: wandb
-  - trainer: reward
+  - trainer: supervised
   - dataloader: default
-  - scheduler: cosine_annealing
+  - scheduler: Null
   - _self_
 
 seed: 42

@@ -1,9 +1,9 @@
 import hydra
 from omegaconf import DictConfig
-from hydra.utils import instantiate
+from hydra.utils import instantiate, get_class
 import torch
+from torch.utils.data import Subset, random_split
 from src.utils.io import save_model
-from src.training.gradient_analyser import GradientAnalyser
 
 @hydra.main(version_base=None, config_path="../configs", config_name="train_n15")
 def main(cfg: DictConfig):
@@ -17,25 +17,30 @@ def main(cfg: DictConfig):
     logger = instantiate(cfg.logger)
     logger.setup(cfg)
 
-    # Initialise model, dataset, dataloaders, criterion, optimizer 
+    # Dataset, Model and dataloaders
     dataset = instantiate(cfg.data)
 
+    model_class = get_class(cfg.model._target_)
+    if model_class.require_flat_input and len(dataset.input_shape) > 1:
+        dataset.flatten()
+        
     model = instantiate(
         cfg.model,
         input_size=dataset.input_shape,
         output_size=dataset.target_shape,
     ).to(device)
 
-    if torch.cuda.device_count() > 1:
-        print(f"Using {torch.cuda.device_count()} GPUs")
-        model = nn.DataParallel(model)
 
+    generator = torch.Generator().manual_seed(cfg.split.seed)
+    # 
+    shuffled_indices = torch.randperm(len(dataset), generator=generator).tolist()
+    selected_indices = shuffled_indices[:1000]
+    dataset = Subset(dataset, selected_indices)
+    # 
     train_size = int(cfg.split.train_ratio * len(dataset))
     test_size = len(dataset) - train_size
-
-    # Create generator and split
-    generator = torch.Generator().manual_seed(cfg.split.seed)
-    train_dataset, test_dataset = torch.utils.data.random_split(
+    
+    train_dataset, test_dataset = random_split(
         dataset, 
         [train_size, test_size],
         generator=generator
@@ -52,19 +57,18 @@ def main(cfg: DictConfig):
         dataset=test_dataset,
         shuffle=False
     )
-    
-    criterion = instantiate(cfg.criterion)
-    
-    optimizer = instantiate(cfg.optimizer, params=model.parameters())
 
+    if torch.cuda.device_count() > 1:
+        print(f"Using {torch.cuda.device_count()} GPUs")
+        model = nn.DataParallel(model)
+    
+    # Criterion, optimizer, scheduler
+    criterion = instantiate(cfg.criterion)
+    optimizer = instantiate(cfg.optimizer, params=model.parameters())
     scheduler = instantiate(cfg.scheduler, optimizer=optimizer) if cfg.get("scheduler") else None
 
-    gradient_analyser = GradientAnalyser(model, criterion)
-    sample_inputs = next(iter(train_loader))
-    gradient_analyser.run_full_report(sample_inputs)
-    
-    # Train and evaluate the model
     try:
+        # Train the model
         trainer = instantiate(
             cfg.trainer,
             model=model,
@@ -75,22 +79,13 @@ def main(cfg: DictConfig):
             device=device,
             logger=logger
         )
-        # During training — track drift
-        gradient_analyser.register_hooks()
         trainer.train()
-        gradient_analyser.remove_hooks()
 
         
         print(trainer.test())
-        
-        # Save the model
         save_model(cfg, model, logger)
-
-        # After training — review what happened
-        gradient_analyser.print_summary()
         
     finally:
-        # Ensure we finish the logger even if training fails
         logger.finish()
 
 if __name__ == "__main__":

@@ -1,0 +1,14 @@
+defaults:
+  - data: nng5x5
+  - model: mlp
+  - optimizer: adam
+  - criterion: nonogram
+  - split: random_split
+  - logger: wandb
+  - trainer: reward
+  - dataloader: default
+  - scheduler: Null
+  - _self_
+
+seed: 42
+wandb_project: "nonograms_5x5"

@@ -1,6 +1,0 @@
-# @package _global_
-data:
-  _target_: src.data.puzzle_dataset.PuzzleDataset
-  input_path: "processed/nonogram_5x5_x.npy"
-  target_path: "processed/nonogram_5x5_y.npy"
-  flat: true
