@@ -1,29 +1,17 @@
 import math
-
 import torch
 import torch.nn as nn
 from torch import Tensor
 
-from src.models.base import BaseModel
 
+class Transformer(nn.Module):
 
-class SimpleTransformer(BaseModel):
-    """
-    A simple Transformer encoder model that mirrors the SimpleNeuralNetwork interface.
-    """
+    require_flat_input = True
 
-    def __init__(
-        self,
-        input_size: int,
-        output_size: int,
-        hidden_size: int = 128,
-        num_layers: int = 2,
-        num_heads: int = 4,
-        num_patches: int = 4,
-        ff_dim: int | None = None,
-        dropout: float = 0.1,
-    ):
+    def __init__(self, input_size: int, output_size: int, hidden_size: int, num_layers: int, num_heads: int, dropout: float, num_patches: int = None, ff_dim: int | None = None):
         super().__init__()
+        if num_patches is None:
+            num_patches = input_size
 
         if input_size % num_patches != 0:
             raise ValueError(
@@ -65,8 +53,6 @@ class SimpleTransformer(BaseModel):
         )
 
         self.fc_out = nn.Linear(hidden_size, output_size)
-        self.sigmoid = nn.Sigmoid()
-
 
     def forward(self, x: Tensor) -> Tensor:
         batch = x.size(0)
@@ -75,4 +61,4 @@ class SimpleTransformer(BaseModel):
         x = self.encoder(x)                           # (batch, num_patches, hidden_size)
         x = x.mean(dim=1)                             # (batch, hidden_size)
         x = self.fc_out(x)                            # (batch, output_size)
-        return self.sigmoid(x)
+        return x

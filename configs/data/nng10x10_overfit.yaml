@@ -1,0 +1,6 @@
+# @package _global_
+data:
+  _target_: src.data.puzzle_dataset.PuzzleDataset
+  input_path: "processed/nonogram_single_sample_10x10.npy"
+  target_path: Null
+  target_shape: [10, 10]

@@ -1,0 +1,19 @@
+name: default
+channels:
+- conda-forge
+- nodefaults
+dependencies:
+- dvc >=3.67.0,<4
+- jupyter >=1.1.1,<2
+- numpy >=2.4.3,<4
+- pandas >=3.0.2,<4
+- ipykernel >=7.2.0,<8
+- wandb >=0.25.1,<0.26
+- python >=3.11,<3.14
+- pip
+- pip:
+  - torch>=2.5.1
+  - -e .
+variables:
+  PYTHONPATH: $PIXI_PROJECT_ROOT:$PYTHONPATH
+

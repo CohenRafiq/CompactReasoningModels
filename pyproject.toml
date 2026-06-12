@@ -20,6 +20,9 @@ numpy = ">=2.4.3,<4"
 pandas = ">=3.0.2,<4"
 ipykernel = ">=7.2.0,<8"
 wandb = ">=0.25.1,<0.26"
+matplotlib = ">=3.10.9,<4"
+scikit-learn = ">=1.8.0,<2"
+transformers = ">=5.9.0,<6"
 
 [tool.pixi.pypi-dependencies]
 torch = { version = ">=2.5.1", index = "https://download.pytorch.org/whl/cu128" }

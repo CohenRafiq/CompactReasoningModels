@@ -1,11 +1,10 @@
 import torch
-from src.models.base import BaseModel
 from torch import Tensor
 from torch import nn
 from typing import List, Optional, Tuple, Union
 
 
-class ConvNeuralNetwork(BaseModel):
+class ConvNeuralNetwork(nn.Module):
 
     def __init__(
         self,
