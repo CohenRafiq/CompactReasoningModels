@@ -2,6 +2,7 @@ import hydra
 from omegaconf import DictConfig
 from hydra.utils import instantiate, get_class
 import torch
+from torch import nn
 from torch.utils.data import Subset, random_split
 from src.utils.io import save_model
 
