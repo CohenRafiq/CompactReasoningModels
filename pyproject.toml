@@ -23,6 +23,9 @@ wandb = ">=0.25.1,<0.26"
 matplotlib = ">=3.10.9,<4"
 scikit-learn = ">=1.8.0,<2"
 transformers = ">=5.9.0,<6"
+pyarrow = ">=24.0.0,<25"
+statsmodels = ">=0.14.6,<0.15"
+seaborn = ">=0.13.2,<0.14"
 
 [tool.pixi.pypi-dependencies]
 torch = { version = ">=2.5.1", index = "https://download.pytorch.org/whl/cu128" }
