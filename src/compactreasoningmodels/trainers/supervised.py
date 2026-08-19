@@ -41,12 +41,12 @@ class NNGSupervisedTrainer(BaseTrainer):
 
             # Committed guess among black/white (drop abstain channel), strict puzzle-level accuracy
             predictions = outputs[:, :2].argmax(dim=1).float()
-            correct = (predictions == targets).all(dim=1).sum().item()
+            correct = (predictions == targets).flatten(1).all(dim=1).sum().item()
             per_label_acc = (predictions == targets).float().mean().item()
         else:
             # Standard accuracy computation
             predictions = (torch.sigmoid(outputs) > 0.5).float()
-            correct = (predictions == targets).all(dim=1).sum().item()
+            correct = (predictions == targets).flatten(1).all(dim=1).sum().item()
             per_label_acc = (predictions == targets).float().mean().item()
 
         return {

@@ -16,8 +16,7 @@ class PuzzleDataset(BaseDataset):
     ):
         super().__init__()
 
-        self.X = self._load_data(input_data)
-        self.y = self._load_data(target_data)
+        self.X, self.y = self._load(input_data, target_data)
 
         if self.X is None:
             raise ValueError("input_data cannot be None")
@@ -30,6 +29,29 @@ class PuzzleDataset(BaseDataset):
 
         if split_categories:
             self._split_categories()
+
+    @staticmethod
+    def _load(input_data: str | Path | torch.Tensor | np.ndarray | None,
+              target_data: str | Path | torch.Tensor | np.ndarray | None) -> tuple[torch.Tensor | None, torch.Tensor | None]:
+        return PuzzleDataset._load_data(input_data), PuzzleDataset._load_data(target_data)
+
+    @staticmethod
+    def _load_data(data: str | Path | torch.Tensor | np.ndarray | None) -> torch.Tensor | None:
+        if data is None:
+            return None
+        if isinstance(data, (str, Path)):
+            base_dir = Path(__import__("os").environ.get("DATA_DIR", "data"))
+            path = base_dir / data
+            return torch.from_numpy(np.load(path)).float()
+        elif isinstance(data, torch.Tensor):
+            return data.float()
+        elif isinstance(data, np.ndarray):
+            return torch.from_numpy(data).float()
+        else:
+            raise ValueError(
+                f"data must be a path string, Path object, torch.Tensor, numpy array, or None. "
+                f"Got {type(data).__name__}"
+            )
 
     def _split_categories(self):
         self.y = torch.stack([self.y, 1 - self.y], dim=-1)

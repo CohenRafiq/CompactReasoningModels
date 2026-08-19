@@ -1,0 +1,6 @@
+# @package _global_
+data:
+  _target_: compactreasoningmodels.datasets.jsonl.JsonlDataset
+  input_data: "raw/nonogram_5x5.jsonl"
+  target_data: Null
+  target_shape: [5, 5]

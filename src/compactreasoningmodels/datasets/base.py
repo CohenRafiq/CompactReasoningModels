@@ -27,24 +27,6 @@ class BaseDataset(Dataset, ABC):
     def target_shape(self) -> tuple[int, ...] | None:
         return self._target_shape
 
-    @staticmethod
-    def _load_data(data: str | Path | torch.Tensor | np.ndarray | None) -> torch.Tensor | None:
-        if data is None:
-            return None
-        if isinstance(data, (str, Path)):
-            base_dir = Path(__import__("os").environ.get("DATA_DIR", "data"))
-            path = base_dir / data
-            return torch.from_numpy(np.load(path)).float()
-        elif isinstance(data, torch.Tensor):
-            return data.float()
-        elif isinstance(data, np.ndarray):
-            return torch.from_numpy(data).float()
-        else:
-            raise ValueError(
-                f"data must be a path string, Path object, torch.Tensor, numpy array, or None. "
-                f"Got {type(data).__name__}"
-            )
-
     def flatten(self):
         self.X = self.X.flatten(start_dim=1)
         self._input_shape = (self.X[0].numel(),)
