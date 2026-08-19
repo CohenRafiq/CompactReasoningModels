@@ -1,5 +1,5 @@
 # @package _global_
 criterion:
-  _target_: src.data.criterion.categorical_abstain.AbstainLoss
+  _target_: compactreasoningmodels.losses.categorical_abstain.AbstainLoss
   abstain_penalty: 0.4
   entropy_weight: 0.1

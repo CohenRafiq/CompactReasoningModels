@@ -1,6 +1,6 @@
 # @package _global_
 model:
-  _target_: src.models.recursive_mlp.RecursiveMLP
+  _target_: compactreasoningmodels.models.recursive_mlp.RecursiveMLP
   hidden_size: 256
   num_layers: 9
   dropout: 0.3

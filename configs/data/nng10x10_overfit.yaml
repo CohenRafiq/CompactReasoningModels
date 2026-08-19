@@ -1,6 +1,6 @@
 # @package _global_
 data:
-  _target_: src.data.puzzle_dataset.PuzzleDataset
+  _target_: compactreasoningmodels.datasets.puzzle.PuzzleDataset
   input_data: "processed/nonogram_single_sample_10x10.npy"
   target_data: Null
   target_shape: [10, 10]

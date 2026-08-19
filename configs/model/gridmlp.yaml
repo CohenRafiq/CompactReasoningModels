@@ -1,6 +1,6 @@
 # @package _global_
 model:
-  _target_: src.models.gridmlp.GridMLP
+  _target_: compactreasoningmodels.models.gridmlp.GridMLP
   hidden_size: 256
   num_layers: 9
   dropout: 0.3

@@ -1,12 +1,14 @@
-import hydra
-from omegaconf import DictConfig
-from hydra.utils import instantiate
 import importlib
+
+import hydra
 import numpy as np
 import torch
+from hydra.utils import instantiate
+from omegaconf import DictConfig
 from torch import nn
 from torch.utils.data import Subset, random_split
-from src.utils.io import save_model
+
+from compactreasoningmodels.utils.io import save_model
 
 
 @hydra.main(version_base=None, config_path="../configs", config_name="n5_mlp_s")
@@ -14,10 +16,10 @@ def main(cfg: DictConfig):
 
     if cfg.seed:
         torch.manual_seed(cfg.seed)
-    
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
-    
+
     logger = instantiate(cfg.logger)
     logger.setup(cfg)
 
@@ -41,7 +43,7 @@ def main(cfg: DictConfig):
     else:
         input_size = dataset.input_shape
         output_size = (n_channels,) + tuple(dataset.target_shape)
-        
+
     model = instantiate(
         cfg.model,
         input_size=input_size,
@@ -58,32 +60,22 @@ def main(cfg: DictConfig):
 
     train_size = int(cfg.split.train_ratio * len(dataset))
     test_size = len(dataset) - train_size
-    
+
     train_dataset, test_dataset = random_split(
-        dataset, 
-        [train_size, test_size],
-        generator=generator
-    )
-    
-    train_loader = instantiate(
-        cfg.dataloader,
-        dataset=train_dataset,
-        shuffle=True
+        dataset, [train_size, test_size], generator=generator
     )
 
-    test_loader = instantiate(
-        cfg.dataloader,
-        dataset=test_dataset,
-        shuffle=False
-    )
+    train_loader = instantiate(cfg.dataloader, dataset=train_dataset, shuffle=True)
+
+    test_loader = instantiate(cfg.dataloader, dataset=test_dataset, shuffle=False)
 
     if torch.cuda.device_count() > 1:
         print(f"Using {torch.cuda.device_count()} GPUs")
         model = nn.DataParallel(model)
-    
+
     criterion = instantiate(cfg.criterion).to(device)
     optimizer = instantiate(cfg.optimizer, params=model.parameters())
-    
+
     scheduler = None
     if cfg.get("scheduler") and cfg.scheduler.get("_target_") is not None:
         scheduler = instantiate(cfg.scheduler, optimizer=optimizer)
@@ -96,14 +88,15 @@ def main(cfg: DictConfig):
             test_loader=test_loader,
             criterion=criterion,
             optimizer=optimizer,
+            scheduler=scheduler,
             device=device,
-            logger=logger
+            logger=logger,
         )
         trainer.train()
 
         print(trainer.test())
         save_model(cfg, model, logger)
-        
+
     finally:
         logger.finish()
 
