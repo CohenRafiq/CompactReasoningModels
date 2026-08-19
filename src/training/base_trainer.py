@@ -1,11 +1,12 @@
 import time
+from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, Tuple
 
 import torch
 from torch.utils.data import DataLoader
 
 
-class BaseTrainer:
+class BaseTrainer(ABC):
     def __init__(
         self,
         model: torch.nn.Module,
@@ -69,8 +70,10 @@ class BaseTrainer:
             metrics = {
                 "train_loss": train_metrics.get("loss", avg_train_loss),
                 "train_accuracy": train_metrics.get("accuracy", 0.0),
+                **{f"train_{k}": v for k, v in train_metrics.items() if k != "loss"},
                 "test_loss": test_metrics.get("loss", float("inf")),
                 "test_accuracy": test_metrics.get("accuracy", 0.0),
+                **{f"test_{k}": v for k, v in test_metrics.items() if k != "loss"},
             }
 
             self._log_epoch(epoch, metrics)
@@ -88,7 +91,7 @@ class BaseTrainer:
                     self.epochs_no_improve += 1
                     if self.epochs_no_improve >= self.patience or test_acc >= 1.0:
                         if self.print_every > 0:
-                            print(f"🛑 Early stopping triggered at epoch {epoch}")
+                            print(f"Early stopping triggered at epoch {epoch}")
                         return
 
     def evaluate(self, data_loader: DataLoader) -> Dict[str, float]:
@@ -107,17 +110,25 @@ class BaseTrainer:
 
         return self._finalise_metrics(accumulated_metrics, n_batches, total_samples)
 
+    def test(self) -> Dict[str, float]:
+        return self.evaluate(self.test_loader)
+
+    @abstractmethod
     def _train_step(self, batch: Any) -> torch.Tensor:
-        raise NotImplementedError("Subclasses must implement _train_step")
+        ...
 
+    @abstractmethod
     def _evaluation_step(self, batch: Any) -> Tuple[Dict[str, float], int]:
-        raise NotImplementedError("Subclasses must implement _evaluation_step")
+        ...
 
+    @abstractmethod
     def _finalise_metrics(self, accumulated: Dict[str, float], n_batches: int, total_samples: int) -> Dict[str, float]:
-        raise NotImplementedError("Subclasses must implement _finalise_metrics")
+        ...
 
+    @abstractmethod
     def _log_epoch(self, epoch: int, metrics: Dict[str, float]) -> None:
-        raise NotImplementedError("Subclasses must implement _log_epoch")
+        ...
 
+    @abstractmethod
     def _print_epoch(self, epoch: int, metrics: Dict[str, float]) -> None:
-        raise NotImplementedError("Subclasses must implement _print_epoch")
+        ...

@@ -7,7 +7,7 @@ defaults:
   - logger: wandb
   - trainer: reward
   - dataloader: default
-  - scheduler: Null
+  - scheduler: null
   - _self_
 
 seed: 42

@@ -1,0 +1,3 @@
+# @package _global_
+scheduler:
+  _target_: src.configs.null_target.NullTarget

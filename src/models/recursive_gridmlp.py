@@ -3,15 +3,7 @@ from torch import Tensor
 from torch import nn
 from typing import Optional
 
-
-class CluePositionalEmbedding(nn.Module):
-    def __init__(self, input_size: int):
-        super().__init__()
-        self.pos_embed = nn.Parameter(torch.zeros(1, input_size))
-        nn.init.normal_(self.pos_embed, std=0.02)
-
-    def forward(self, x: Tensor) -> Tensor:
-        return x + self.pos_embed
+from src.models.layers import CluePositionalEmbedding, GridResidualBlock
 
 
 class RecursiveGridMLP(nn.Module):
@@ -45,10 +37,11 @@ class RecursiveGridMLP(nn.Module):
             nn.Dropout(dropout),
         )
 
-        self.residual_block = ResidualBlock(
+        self.residual_block = GridResidualBlock(
             output_size=output_size,
             hidden_size=hidden_size,
             dropout=dropout,
+            normalize_grid=True,
         )
 
         self.fc = nn.Linear(self.combined_size, self.output_size)
@@ -63,45 +56,11 @@ class RecursiveGridMLP(nn.Module):
 
         x = self.clue_pos_embed(x)
 
-        context = self.input_proj(x)                       # (batch, hidden_size)
-        batch_grid = self.grid.expand(x.size(0), -1)       # (batch, output_size)
-        out = torch.cat([batch_grid, context], dim=-1)    # (batch, combined)
+        context = self.input_proj(x)
+        batch_grid = self.grid.expand(x.size(0), -1)
+        out = torch.cat([batch_grid, context], dim=-1)
 
         for _ in range(self.num_layers if layer_num is None else layer_num):
             out = self.residual_block(out)
 
         return self.fc(out)
-
-
-class ResidualBlock(nn.Module):
-
-    def __init__(self, output_size: int, hidden_size: int, dropout: float):
-        super().__init__()
-        self.output_size = output_size
-        self.hidden_size = hidden_size
-        self.combined_size = output_size + hidden_size
-
-        self.thinking_norm = nn.LayerNorm(hidden_size)
-        self.grid_norm = nn.LayerNorm(output_size)
-        self.fc = nn.Linear(self.combined_size, self.combined_size)
-        self.activation = nn.ReLU()
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x: Tensor) -> Tensor:
-        residual = x
-
-        # Split into grid and thinking components
-        grid = x[:, : self.output_size]           # (batch, output_size)
-        thinking = x[:, self.output_size :]       # (batch, hidden_size)
-
-        # Normalise
-        thinking = self.thinking_norm(thinking)
-        grid = self.grid_norm(grid)
-
-        # Recombine and pass through the sublayer
-        out = torch.cat([grid, thinking], dim=-1)
-        out = self.fc(out)
-        out = self.activation(out)
-        out = self.dropout(out)
-
-        return residual + out

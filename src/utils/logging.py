@@ -1,8 +1,33 @@
-import wandb
-from typing import Dict, Any, Optional
+from abc import ABC, abstractmethod
+from typing import Any, Dict, Optional
+
 import torch
 
-class WandbLogger:
+
+class BaseLogger(ABC):
+
+    @abstractmethod
+    def setup(self, cfg: Any = None):
+        ...
+
+    @abstractmethod
+    def log_metrics(self, metrics: Dict[str, Any], step: Optional[int] = None):
+        ...
+
+    @abstractmethod
+    def log_model(self, model_path: str, name: str = "model"):
+        ...
+
+    @abstractmethod
+    def watch_model(self, model: torch.nn.Module, log_freq: int = 100):
+        ...
+
+    @abstractmethod
+    def finish(self):
+        ...
+
+
+class WandbLogger(BaseLogger):
     def __init__(
         self,
         project: str,
@@ -25,7 +50,7 @@ class WandbLogger:
         self.run = None
     
     def setup(self, cfg=None):
-        """Initialize W&B run"""
+        import wandb
         run_config = {**self.config}
         if cfg is not None:
             from omegaconf import OmegaConf
@@ -43,29 +68,29 @@ class WandbLogger:
         return self.run
     
     def log_metrics(self, metrics: Dict[str, Any], step: Optional[int] = None):
-        """Log metrics dictionary"""
         if self.run:
+            import wandb
             wandb.log(metrics, step=step)
     
     def log_model(self, model_path: str, name: str = "model"):
-        """Log model artifact"""
         if self.run and self.should_log_model:
+            import wandb
             artifact = wandb.Artifact(name, type="model")
             artifact.add_file(model_path)
             wandb.log_artifact(artifact)
     
     def watch_model(self, model: torch.nn.Module, log_freq: int = 100):
-        """Watch model gradients/parameters"""
         if self.run:
+            import wandb
             wandb.watch(model, log="all", log_freq=log_freq)
     
     def finish(self):
-        """Close W&B run"""
         if self.run:
+            import wandb
             wandb.finish()
 
-class NullLogger:
-    """No-op logger for when you don't want logging"""
+
+class NullLogger(BaseLogger):
     def setup(self, cfg=None): pass
     def log_metrics(self, *args, **kwargs): pass
     def log_model(self, *args, **kwargs): pass

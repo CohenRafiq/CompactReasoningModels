@@ -1,0 +1,5 @@
+# @package _global_
+data:
+  _target_: src.data.parquet_puzzle_dataset.ParquetPuzzleDataset
+  parquet_path: "raw/nng_5x5.parquet"
+  target_shape: [5, 5]
