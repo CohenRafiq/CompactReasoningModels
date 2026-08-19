@@ -1,6 +1,6 @@
 # @package _global_
 logger:
-  _target_: src.utils.logging.WandbLogger
+  _target_: compactreasoningmodels.loggers.wandb.WandbLogger
   project: ${wandb_project}
   name: null
   group: null

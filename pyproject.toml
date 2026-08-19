@@ -9,29 +9,53 @@ version = "0.1.0"
 build-backend = "hatchling.build"
 requires = ["hatchling"]
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/compactreasoningmodels"]
+
 [tool.pixi.workspace]
 channels = ["conda-forge"]
 platforms = ["linux-64"]
 
 [tool.pixi.dependencies]
 dvc = ">=3.67.0,<4"
-jupyter = ">=1.1.1,<2"
-numpy = ">=2.4.3,<4"
-pandas = ">=3.0.2,<4"
+hydra-core = ">=1.3.2,<2"
 ipykernel = ">=7.2.0,<8"
-wandb = ">=0.25.1,<0.26"
+jupyter = ">=1.1.1,<2"
 matplotlib = ">=3.10.9,<4"
-scikit-learn = ">=1.8.0,<2"
-transformers = ">=5.9.0,<6"
+numpy = ">=2.4.3,<4"
+omegaconf = ">=2.3.0,<3"
+pandas = ">=3.0.2,<4"
 pyarrow = ">=24.0.0,<25"
-statsmodels = ">=0.14.6,<0.15"
+scikit-learn = ">=1.8.0,<2"
 seaborn = ">=0.13.2,<0.14"
+statsmodels = ">=0.14.6,<0.15"
+transformers = ">=5.9.0,<6"
+wandb = ">=0.25.1,<0.26"
 
 [tool.pixi.pypi-dependencies]
-torch = { version = ">=2.5.1", index = "https://download.pytorch.org/whl/cu128" }
 CompactReasoningModels = { path = ".", editable = true }
+mypy = ">=1.11"
+pandas-stubs = ">=2.2"
+pytest = ">=8.0"
+ruff = ">=0.6"
+torch = { version = ">=2.5.1", index = "https://download.pytorch.org/whl/cu128" }
 
 [tool.pixi.activation]
 env = { PYTHONPATH = "$PIXI_PROJECT_ROOT:$PYTHONPATH" }
 
 [tool.pixi.tasks]
+lint = "ruff check src scripts tests"
+format = "ruff format src scripts tests"
+type-check = "mypy src"
+test = "pytest tests -q"
+train = "python scripts/train.py"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

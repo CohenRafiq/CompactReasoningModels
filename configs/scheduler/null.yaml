@@ -1,0 +1,3 @@
+# @package _global_
+scheduler:
+  _target_: compactreasoningmodels.utils.null_target.NullTarget
