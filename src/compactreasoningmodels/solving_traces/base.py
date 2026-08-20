@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
 
 import numpy as np
-import torch
+
 
 class SolvingTrace(ABC):
 
-    def __init__(self, clues: torch.Tensor, grid_shape: tuple[int, int], initial_grid: list[list[int]] | None = None):
+    def __init__(self, clues: np.ndarray, grid_shape: tuple[int, int], initial_grid: np.ndarray | None = None):
         super().__init__()
         self.clues = clues
         self.grid_size = grid_shape
@@ -13,11 +13,11 @@ class SolvingTrace(ABC):
         self.traces = [self.initial_grid]
 
     @staticmethod
-    def _blank_grid(width: int, height: int) -> list[list[int]]:
+    def _blank_grid(width: int, height: int) -> np.ndarray:
         return np.full((height, width), 0.5, dtype=float)
 
     @staticmethod
-    def _is_solved(clues: torch.Tensor, grid: list[list[int]]) -> bool:
+    def _is_solved(clues: np.ndarray, grid: np.ndarray) -> bool:
         for i, row in enumerate(grid):
             if not SolvingTrace._check_clue(row, clues[i]):
                 return False
@@ -27,10 +27,10 @@ class SolvingTrace(ABC):
         return True
 
     @staticmethod
-    def _check_clue(line: list[int], clue: torch.Tensor, epsilon: float = 1e-2) -> bool:
+    def _check_clue(line: np.ndarray, clue: np.ndarray, epsilon: float = 1e-2) -> bool:
         # Round if epsilon off 0 or 1
         line = [1 if cell > 1 - epsilon else 0 if cell < epsilon else -1 for cell in line]
-        if -1 in line: 
+        if -1 in line:
             return False
 
         runs = []
@@ -44,9 +44,9 @@ class SolvingTrace(ABC):
         if current_run > 0:
             runs.append(current_run)
 
-        return runs == clue.tolist()
+        return runs == list(clue)
 
-    def try_solve(self, max_steps: int = 100) -> tuple[bool, list[list[list[int]]]]:
+    def try_solve(self, max_steps: int = 1000) -> tuple[bool, list[np.ndarray]]:
         solved = False
         for _ in range(max_steps):
             new_grid = self.step(self.traces[-1])
@@ -57,9 +57,9 @@ class SolvingTrace(ABC):
         return solved, self.traces
 
     @abstractmethod
-    def step(self, grid: list[list[int]]) -> list[list[int]]:
+    def step(self, grid: np.ndarray) -> np.ndarray:
         ...
 
     @abstractmethod
-    def heatmap_step(self, grid: list[list[int]]) -> np.ndarray:
+    def heatmap_step(self, grid: np.ndarray) -> np.ndarray:
         ...
