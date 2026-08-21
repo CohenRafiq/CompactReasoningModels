@@ -18,24 +18,33 @@ class SolvingTrace(ABC):
 
     @staticmethod
     def _is_solved(clues: np.ndarray, grid: np.ndarray) -> bool:
-        for i, row in enumerate(grid):
-            if not SolvingTrace._check_clue(row, clues[i]):
+        num_rows = len(grid)
+        num_cols = len(grid[0]) if num_rows > 0 else 0
+        
+        # Check rows
+        for i in range(num_rows):
+            if not SolvingTrace._check_clue(grid[i], clues[i]):
                 return False
-        for j, col in enumerate(zip(*grid)):
-            if not SolvingTrace._check_clue(col, clues[len(grid) + j]):
+        
+        # Check columns
+        for j in range(num_cols):
+            col = grid[:, j]  # Use numpy slicing to get column as array
+            if not SolvingTrace._check_clue(col, clues[num_rows + j]):
                 return False
+        
         return True
 
     @staticmethod
     def _check_clue(line: np.ndarray, clue: np.ndarray, epsilon: float = 1e-2) -> bool:
         # Round if epsilon off 0 or 1
-        line = [1 if cell > 1 - epsilon else 0 if cell < epsilon else -1 for cell in line]
-        if -1 in line:
+        line_rounded = [1 if cell > 1 - epsilon else 0 if cell < epsilon else -1 for cell in line]
+        
+        if -1 in line_rounded:
             return False
 
         runs = []
         current_run = 0
-        for cell in line:
+        for cell in line_rounded:
             if cell == 1:
                 current_run += 1
             elif current_run > 0:

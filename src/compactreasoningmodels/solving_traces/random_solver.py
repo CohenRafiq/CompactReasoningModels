@@ -14,7 +14,11 @@ class RandomSolver(SolvingTrace):
         new_grid[row, col] = random.randint(0, 1)
         return new_grid
 
-    def heatmap_step(self, grid: np.ndarray) -> np.ndarray:
-        width, height = grid.shape
-        trajectory = np.full(grid.shape, 0.5, dtype=float) - grid.copy()
-        return grid.copy() + trajectory / (width * height)
+    def heatmap_step(self, grid):
+        height, width = grid.shape
+        # Each cell has 1/(w*h) chance of being selected
+        # If selected, expected new value is 0.5
+        # So expected change = (1/(w*h)) * (0.5 - grid[i,j])
+        selection_prob = 1.0 / (height * width)
+        expected_change = selection_prob * (0.5 - grid)
+        return grid + expected_change

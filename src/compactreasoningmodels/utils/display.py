@@ -1,7 +1,9 @@
 import torch
 
 def display_grid(ax, grid, clues=None, title=''):
-    ax.imshow(grid.cpu().numpy(), cmap='gray_r', interpolation='nearest')
+    if isinstance(grid, torch.Tensor):
+        grid = grid.detach().cpu().numpy()
+    ax.imshow(grid, cmap='gray_r', interpolation='nearest', vmin=0, vmax=1)
     ax.set_xlim(-0.5, grid.shape[1] - 0.5)
     ax.set_ylim(grid.shape[0] - 0.5, -0.5)
     for i in range(grid.shape[0] + 1):
@@ -16,7 +18,7 @@ def display_grid(ax, grid, clues=None, title=''):
         for j, col_clue in enumerate(clues[1]):
             clue_str = ",".join(str(int(num)) for num in col_clue if num > 0) or "0"
             ax.text(j, -0.6, clue_str, va='bottom', ha='center', fontsize=12)
-    ax.set_title(title, fontsize=14)
+    ax.set_title(title, fontsize=14, pad=20)
 
 def display_blended(ax, grid, title=''):
     smooth = torch.softmax(grid, dim=0)

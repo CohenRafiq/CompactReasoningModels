@@ -14,7 +14,8 @@ class CheatingRandom(SolvingTrace):
     def step(self, grid: np.ndarray) -> np.ndarray:
         if self.correct is None:
             raise ValueError("correct grid has not been set. Call set_correct() before step().")
-
+        if np.array_equal(grid, self.correct):
+            return grid.copy()
         new_grid = grid.copy()
         height, width = new_grid.shape
         # pick a random square that is not yet filled correctly
@@ -26,11 +27,14 @@ class CheatingRandom(SolvingTrace):
         new_grid[row, col] = self.correct[row, col]
         return new_grid
 
-    def heatmap_step(self, grid: np.ndarray) -> np.ndarray:
-        if self.correct is None:
-            raise ValueError("correct grid has not been set. Call set_correct() before heatmap_step().")
-
+    def heatmap_step(self, grid):
         unfilled_mask = grid != self.correct
-        number_of_unfilled = np.sum(unfilled_mask)
-        change_mask = np.where(unfilled_mask, 1 / number_of_unfilled, -1 / number_of_unfilled) * unfilled_mask
-        return grid.copy() + change_mask
+        n_unfilled = np.sum(unfilled_mask)
+        if n_unfilled == 0:
+            return grid.copy()
+        
+        # Expected change for each cell
+        expected_change = np.zeros_like(grid, dtype=float)
+        expected_change[unfilled_mask] = (self.correct[unfilled_mask] - grid[unfilled_mask]) / n_unfilled
+        
+        return grid + expected_change
