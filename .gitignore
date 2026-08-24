@@ -15,6 +15,7 @@ data/processed/*
 data/transformed/*
 models/*
 outputs/*
+experiments/artifacts/*
 
 # Keep the folders (don't ignore the .gitkeep files)
 !data/raw/.gitkeep
