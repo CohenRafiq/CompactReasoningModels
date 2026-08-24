@@ -7,7 +7,7 @@ from compactreasoningmodels.solving_traces.discrete_genetic import DiscreteGenet
 from compactreasoningmodels.solving_traces.global_min_violations import GlobalMinViolations
 from compactreasoningmodels.solving_traces.local_min_violations import LocalMinViolations
 from compactreasoningmodels.solving_traces.arc_consistency import ArcConsistency
-from compactreasoningmodels.solving_traces.similarity_measures import MSE, PearsonCorrelation
+from compactreasoningmodels.solving_traces.similarity_measures import MSE, PearsonCorrelation, SSIMSimilarity
 from compactreasoningmodels.datasets.jsonl import JsonlDataset
 
 SOLVERS = {
@@ -19,7 +19,8 @@ SOLVERS = {
 
 METRICS = {
     "MSE": MSE(),
-    "Pearson Correlation": PearsonCorrelation()
+    "Pearson Correlation": PearsonCorrelation(),
+    "SSIM": SSIMSimilarity()
 }
 
 def add_noise_to_grid(grid: np.ndarray, noise_level: float = 0.1) -> np.ndarray:
@@ -27,7 +28,7 @@ def add_noise_to_grid(grid: np.ndarray, noise_level: float = 0.1) -> np.ndarray:
     noisy_grid = (1-noise_level) * grid + noise
     return noisy_grid
 
-def main(number_samples=100, print_every=None):
+def main(number_samples=100, print_every=None, noise_level=0.1):
     dataset = JsonlDataset("raw/nonogram_5x5_small.jsonl", target_shape=(5, 5))
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False)
 
@@ -60,7 +61,7 @@ def main(number_samples=100, print_every=None):
     }
 
     for noisy, clean in itertools.product(solver_names, repeat=2):
-        noisy_grids = add_noise_to_grid(np.array(heatmaps[noisy]))
+        noisy_grids = add_noise_to_grid(np.array(heatmaps[noisy]), noise_level=noise_level)
         clean_grids = np.array(heatmaps[clean])
 
         for metric_name, metric in METRICS.items():
@@ -75,4 +76,4 @@ def main(number_samples=100, print_every=None):
         print()
 
 if __name__ == "__main__":
-    main(number_samples=20, print_every=5)
+    main(number_samples=20, print_every=5, noise_level=0.3)

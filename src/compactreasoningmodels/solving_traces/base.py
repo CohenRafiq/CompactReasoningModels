@@ -21,18 +21,21 @@ class SolvingTrace(ABC):
 
     @staticmethod
     def _is_solved(clues: np.ndarray, grid: np.ndarray) -> bool:
-        num_rows = len(grid)
-        num_cols = len(grid[0]) if num_rows > 0 else 0
+        if clues.ndim == 3:
+            row_clues, col_clues = clues[0], clues[1]
+        else:
+            num_rows = len(grid)
+            row_clues, col_clues = clues[:num_rows], clues[num_rows:]
 
         # Check rows
-        for i in range(num_rows):
-            if not SolvingTrace._check_clue(grid[i], clues[i]):
+        for i in range(len(grid)):
+            if not SolvingTrace._check_clue(grid[i], row_clues[i]):
                 return False
 
         # Check columns
-        for j in range(num_cols):
+        for j in range(grid.shape[1]):
             col = grid[:, j]  # Use numpy slicing to get column as array
-            if not SolvingTrace._check_clue(col, clues[num_rows + j]):
+            if not SolvingTrace._check_clue(col, col_clues[j]):
                 return False
 
         return True
