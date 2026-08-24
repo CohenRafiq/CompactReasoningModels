@@ -37,7 +37,7 @@ class LocalMinViolations(SolvingTrace):
             losses.append(loss.item())
 
         losses_tensor = torch.tensor(losses)
-        min_idx = torch.argmin(losses_tensor)
+        min_idx = int(torch.argmin(losses_tensor))
 
         if min_idx > 0 and min_idx < len(coarse_values) - 1:
             low = coarse_values[min_idx - 1].item()

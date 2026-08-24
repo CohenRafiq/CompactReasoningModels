@@ -172,7 +172,7 @@ class WassersteinSimilarity(SimilarityMeasure):
             grid2 = grid2[np.newaxis, ...]
 
         B = grid1.shape[0]
-        distances = []
+        distances: list[float] = []
 
         for i in range(B):
             dist = wasserstein_distance(
@@ -181,9 +181,7 @@ class WassersteinSimilarity(SimilarityMeasure):
             )
             distances.append(dist)
 
-        distances = np.array(distances)
-
-        result = np.clip(distances, 0, 1)
+        result = np.clip(np.asarray(distances), 0, 1)
 
         return result if was_batched else float(result[0])
 
@@ -206,5 +204,5 @@ def compare_batches(
 
     a_flat = a_exp.reshape(N * M, *a.shape[1:])
     b_flat = b_exp.reshape(N * M, *b.shape[1:])
-    similarities = measure(a_flat, b_flat)  # (N*M,)
+    similarities = np.asarray(measure(a_flat, b_flat))  # (N*M,)
     return similarities.reshape(N, M)  # (N, M)

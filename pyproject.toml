@@ -39,6 +39,7 @@ mypy = ">=1.11"
 pandas-stubs = ">=2.2"
 pytest = ">=8.0"
 ruff = ">=0.6"
+scipy-stubs = ">=1.15"
 torch = { version = ">=2.5.1", index = "https://download.pytorch.org/whl/cu128" }
 
 [tool.pixi.activation]

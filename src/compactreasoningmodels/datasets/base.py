@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 
 class BaseDataset(Dataset, ABC):
     @abstractmethod
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._input_shape: tuple[int, ...] | None = None
         self._target_shape: tuple[int, ...] | None = None

@@ -25,12 +25,19 @@ class JsonlDataset(PuzzleDataset):
         )
 
     @staticmethod
-    def _load(input_data: str | Path | torch.Tensor | np.ndarray | None,
-            target_data: None = None) -> tuple[torch.Tensor | None, torch.Tensor | None]:
+    def _load(
+        input_data: str | Path | torch.Tensor | np.ndarray | None,
+        target_data: str | Path | torch.Tensor | np.ndarray | None = None,
+    ) -> tuple[torch.Tensor | None, torch.Tensor | None]:
+        if not isinstance(input_data, (str, Path)):
+            raise ValueError(
+                f"input_data must be a path string or Path object. "
+                f"Got {type(input_data).__name__}"
+            )
         base_dir = Path(os.environ.get("DATA_DIR", "data"))
-        with open(base_dir / input_data) as f:
+        input_path = base_dir / Path(input_data)
+        with open(input_path) as f:
             records = [json.loads(line) for line in f if line.strip()]
-
         height, width = records[0]["height"], records[0]["width"]
         bad = next((r for r in records if r["height"] != height or r["width"] != width), None)
         if bad is not None:
