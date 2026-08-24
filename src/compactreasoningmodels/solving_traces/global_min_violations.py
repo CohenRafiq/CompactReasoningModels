@@ -1,15 +1,16 @@
-from compactreasoningmodels.solving_traces.base import SolvingTrace
-from compactreasoningmodels.losses.nonogram import NonogramLoss
-
 import numpy as np
 import torch
 
-# Updates the entire grid using gradient descent 
+from compactreasoningmodels.losses.nonogram import NonogramLoss
+from compactreasoningmodels.solving_traces.base import SolvingTrace
+
+# Updates the entire grid using gradient descent
 # to minimize the loss (satisfy clues)
 
 class GlobalMinViolations(SolvingTrace):
 
-    def __init__(self, clues: np.ndarray, grid_shape: tuple[int, int], initial_grid: np.ndarray | None = None):
+    def __init__(self, clues: np.ndarray, grid_shape: tuple[int, int],
+                 initial_grid: np.ndarray | None = None):
         super().__init__(clues, grid_shape, initial_grid)
         self.loss_fn = NonogramLoss(reduction="mean")
         self.tensor_clues = torch.tensor(clues.flatten(), dtype=torch.float32).unsqueeze(0)

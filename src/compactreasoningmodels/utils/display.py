@@ -1,5 +1,6 @@
 import torch
 
+
 def display_grid(ax, grid, clues=None, title=''):
     if isinstance(grid, torch.Tensor):
         grid = grid.detach().cpu().numpy()

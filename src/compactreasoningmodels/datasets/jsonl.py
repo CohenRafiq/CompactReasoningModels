@@ -1,10 +1,10 @@
-from pathlib import Path
+import itertools
+import json
 import os
+from pathlib import Path
 
 import numpy as np
 import torch
-import json
-import itertools
 
 from compactreasoningmodels.datasets.puzzle import PuzzleDataset
 
@@ -36,20 +36,25 @@ class JsonlDataset(PuzzleDataset):
         if bad is not None:
             raise ValueError(
                 f"All puzzles must have the same dimensions. "
-                f"Expected {height}x{width}, got {bad['height']}x{bad['width']} (id={bad.get('id')})"
+                f"Expected {height}x{width}, got "
+                f"{bad['height']}x{bad['width']} (id={bad.get('id')})"
             )
 
         n = len(records)
         max_row_clue_len = (width + 1) // 2
         max_col_clue_len = (height + 1) // 2
 
-        def pad_clues(all_clues: list[list[int]], count_per_rec: int, max_len: int, label: str) -> np.ndarray:
+        def pad_clues(all_clues: list[list[int]], count_per_rec: int,
+                      max_len: int, label: str) -> np.ndarray:
             lengths = np.fromiter((len(c) for c in all_clues), dtype=np.int64, count=len(all_clues))
             overflow = np.flatnonzero(lengths > max_len)
             if overflow.size:
                 idx = int(overflow[0])
                 rec = records[idx // count_per_rec]
-                raise ValueError(f"{label} clue {all_clues[idx]} exceeds max length {max_len} (id={rec.get('id')})")
+                raise ValueError(
+                    f"{label} clue {all_clues[idx]} exceeds max length "
+                    f"{max_len} (id={rec.get('id')})"
+                    )
 
             out = np.zeros((len(all_clues), max_len), dtype=np.float32)
             mask = np.arange(max_len) < lengths[:, None]

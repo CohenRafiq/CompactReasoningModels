@@ -1,7 +1,6 @@
-from compactreasoningmodels.solving_traces.base import SolvingTrace
-from compactreasoningmodels.losses.nonogram import NonogramLoss
-
 import numpy as np
+
+from compactreasoningmodels.solving_traces.base import SolvingTrace
 
 # Simulates population and evolves it using
 # genetic algorithm to minimize constraint violations
@@ -10,10 +9,14 @@ import numpy as np
 
 
 class DiscreteGeneticAlgorithm(SolvingTrace):
-    def __init__(self, clues: np.ndarray, grid_shape: tuple[int, int], initial_grid: np.ndarray | None = None, population_size: int = 100, concurrent_samples: int = 100, mutation_rate: float = 0.01, tournament_size: int = 3):
+    def __init__(
+            self, clues: np.ndarray, grid_shape: tuple[int, int],
+            initial_grid: np.ndarray | None = None, population_size: int = 100,
+            concurrent_samples: int = 100, mutation_rate: float = 0.01,
+            tournament_size: int = 3):
         super().__init__(clues, grid_shape, initial_grid)
-        self.population_size = population_size         # mu: number of parents kept each generation
-        self.concurrent_samples = concurrent_samples       # independent parallel GA runs (for a smoother heatmap)
+        self.population_size = population_size
+        self.concurrent_samples = concurrent_samples
         self.mutation_rate = mutation_rate
         self.tournament_size = tournament_size
         self.grid_shape = grid_shape
@@ -133,11 +136,11 @@ class DiscreteGeneticAlgorithm(SolvingTrace):
         t = self.tournament_size
 
         def select_parents() -> np.ndarray:
-            contenders = np.random.randint(0, mu, size=(S, num_children, t))  # (S, C, t)
-            fit_c = fitness[s_range[:, None, None], contenders]               # (S, C, t)
-            winner_local = np.argmax(fit_c, axis=2)                           # (S, C)
+            contenders = np.random.randint(0, mu, size=(S, num_children, t))
+            fit_c = fitness[s_range[:, None, None], contenders]
+            winner_local = np.argmax(fit_c, axis=2)
             winner_idx = np.take_along_axis(contenders, winner_local[..., None], axis=2)
-            return winner_idx.squeeze(-1)                                    # (S, C) -> indices into mu
+            return winner_idx.squeeze(-1)
 
         parent1_idx = select_parents()
         parent2_idx = select_parents()

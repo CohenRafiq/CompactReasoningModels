@@ -32,7 +32,8 @@ class PuzzleDataset(BaseDataset):
 
     @staticmethod
     def _load(input_data: str | Path | torch.Tensor | np.ndarray | None,
-              target_data: str | Path | torch.Tensor | np.ndarray | None) -> tuple[torch.Tensor | None, torch.Tensor | None]:
+              target_data: str | Path | torch.Tensor | np.ndarray | None
+              ) -> tuple[torch.Tensor | None, torch.Tensor | None]:
         return PuzzleDataset._load_data(input_data), PuzzleDataset._load_data(target_data)
 
     @staticmethod

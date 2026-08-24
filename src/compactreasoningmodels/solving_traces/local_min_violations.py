@@ -1,16 +1,18 @@
-from compactreasoningmodels.solving_traces.base import SolvingTrace
-from compactreasoningmodels.losses.nonogram import NonogramLoss
+import math
 
 import numpy as np
 import torch
-import math
 
-# Greedily updates every cell based on what value 
+from compactreasoningmodels.losses.nonogram import NonogramLoss
+from compactreasoningmodels.solving_traces.base import SolvingTrace
+
+# Greedily updates every cell based on what value
 # Would minimise loss (satisfy clues)
 
 class LocalMinViolations(SolvingTrace):
 
-    def __init__(self, clues: np.ndarray, grid_shape: tuple[int, int], initial_grid: np.ndarray | None = None):
+    def __init__(self, clues: np.ndarray, grid_shape: tuple[int, int],
+                 initial_grid: np.ndarray | None = None):
         super().__init__(clues, grid_shape, initial_grid)
         self.loss_fn = NonogramLoss(reduction="mean")
         self.tensor_clues = torch.tensor(clues.flatten(), dtype=torch.float32).unsqueeze(0)

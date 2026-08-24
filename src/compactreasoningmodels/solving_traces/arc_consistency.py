@@ -1,6 +1,6 @@
-from compactreasoningmodels.solving_traces.base import SolvingTrace
-
 import numpy as np
+
+from compactreasoningmodels.solving_traces.base import SolvingTrace
 
 
 class ArcConsistency(SolvingTrace):
@@ -105,7 +105,8 @@ class ArcConsistency(SolvingTrace):
                 flat.append(int(item))
         return tuple(b for b in flat if b > 0)
 
-    def _loop_directions(self, grid: np.ndarray, direction_clues, known_grid: np.ndarray) -> np.ndarray | None:
+    def _loop_directions(self, grid: np.ndarray, direction_clues,
+                         known_grid: np.ndarray) -> np.ndarray | None:
         output_grid = np.empty_like(grid, dtype=np.float64)
         for i in range(grid.shape[0]):
             blocks = self._to_blocks(direction_clues[i])
