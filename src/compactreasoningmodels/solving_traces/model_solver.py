@@ -1,11 +1,10 @@
-import math
 
 import numpy as np
 import torch
 
-from compactreasoningmodels.solving_traces.base import SolvingTrace
 from compactreasoningmodels.models.base import BaseModel
 from compactreasoningmodels.models.recursive_gridmlp import RecursiveGridMLP
+from compactreasoningmodels.solving_traces.base import SolvingTrace
 from compactreasoningmodels.utils.load_model import load_model
 
 
@@ -27,7 +26,13 @@ class ModelSolver(SolvingTrace):
             )
         self.model = model
         self.model.eval()
-        self.tensor_clues = torch.from_numpy(clues).flatten().unsqueeze(0).to(self.model.grid.device)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.tensor_clues = (
+            torch.from_numpy(clues)
+            .flatten()
+            .unsqueeze(0)
+            .to(device)
+            )
 
     def compress_categorical_abstain(self, grid: torch.Tensor) -> np.ndarray:
         # Input (3, H, W) → Output (H, W)
@@ -35,7 +40,7 @@ class ModelSolver(SolvingTrace):
         compressed = (smooth[1] + 0.5 * smooth[2])/3
         return compressed.cpu().detach().numpy()
 
-        
+
 
     def heatmap_step(self, grid: np.ndarray, num_steps: int = 6) -> np.ndarray:
         with torch.no_grad():
