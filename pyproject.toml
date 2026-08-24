@@ -31,6 +31,7 @@ seaborn = ">=0.13.2,<0.14"
 statsmodels = ">=0.14.6,<0.15"
 transformers = ">=5.9.0,<6"
 wandb = ">=0.25.1,<0.26"
+scikit-image = ">=0.26.0,<0.27"
 
 [tool.pixi.pypi-dependencies]
 CompactReasoningModels = { path = ".", editable = true }
@@ -38,6 +39,7 @@ mypy = ">=1.11"
 pandas-stubs = ">=2.2"
 pytest = ">=8.0"
 ruff = ">=0.6"
+scipy-stubs = ">=1.15"
 torch = { version = ">=2.5.1", index = "https://download.pytorch.org/whl/cu128" }
 
 [tool.pixi.activation]

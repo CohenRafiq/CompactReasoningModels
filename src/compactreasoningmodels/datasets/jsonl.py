@@ -1,10 +1,10 @@
-from pathlib import Path
+import itertools
+import json
 import os
+from pathlib import Path
 
 import numpy as np
 import torch
-import json
-import itertools
 
 from compactreasoningmodels.datasets.puzzle import PuzzleDataset
 
@@ -25,31 +25,43 @@ class JsonlDataset(PuzzleDataset):
         )
 
     @staticmethod
-    def _load(input_data: str | Path | torch.Tensor | np.ndarray | None,
-            target_data: None = None) -> tuple[torch.Tensor | None, torch.Tensor | None]:
+    def _load(
+        input_data: str | Path | torch.Tensor | np.ndarray | None,
+        target_data: str | Path | torch.Tensor | np.ndarray | None = None,
+    ) -> tuple[torch.Tensor | None, torch.Tensor | None]:
+        if not isinstance(input_data, (str, Path)):
+            raise ValueError(
+                f"input_data must be a path string or Path object. "
+                f"Got {type(input_data).__name__}"
+            )
         base_dir = Path(os.environ.get("DATA_DIR", "data"))
-        with open(base_dir / input_data) as f:
+        input_path = base_dir / Path(input_data)
+        with open(input_path) as f:
             records = [json.loads(line) for line in f if line.strip()]
-
         height, width = records[0]["height"], records[0]["width"]
         bad = next((r for r in records if r["height"] != height or r["width"] != width), None)
         if bad is not None:
             raise ValueError(
                 f"All puzzles must have the same dimensions. "
-                f"Expected {height}x{width}, got {bad['height']}x{bad['width']} (id={bad.get('id')})"
+                f"Expected {height}x{width}, got "
+                f"{bad['height']}x{bad['width']} (id={bad.get('id')})"
             )
 
         n = len(records)
         max_row_clue_len = (width + 1) // 2
         max_col_clue_len = (height + 1) // 2
 
-        def pad_clues(all_clues: list[list[int]], count_per_rec: int, max_len: int, label: str) -> np.ndarray:
+        def pad_clues(all_clues: list[list[int]], count_per_rec: int,
+                      max_len: int, label: str) -> np.ndarray:
             lengths = np.fromiter((len(c) for c in all_clues), dtype=np.int64, count=len(all_clues))
             overflow = np.flatnonzero(lengths > max_len)
             if overflow.size:
                 idx = int(overflow[0])
                 rec = records[idx // count_per_rec]
-                raise ValueError(f"{label} clue {all_clues[idx]} exceeds max length {max_len} (id={rec.get('id')})")
+                raise ValueError(
+                    f"{label} clue {all_clues[idx]} exceeds max length "
+                    f"{max_len} (id={rec.get('id')})"
+                    )
 
             out = np.zeros((len(all_clues), max_len), dtype=np.float32)
             mask = np.arange(max_len) < lengths[:, None]

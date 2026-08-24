@@ -1,13 +1,17 @@
+from pathlib import Path
+
 import pytest
 import torch
 
 from compactreasoningmodels.data_generation.parquet_reader import ParquetReader
 from compactreasoningmodels.datasets.parquet import ParquetPuzzleDataset
 
+FIXTURES_DIR = Path(__file__).parent / "fixtures"
+
 
 @pytest.fixture
 def small_parquet() -> str:
-    return "raw/nng_5x5_small.parquet"
+    return str(FIXTURES_DIR / "nng_5x5_tiny.parquet")
 
 
 def test_dataset_shapes(small_parquet):
@@ -31,13 +35,13 @@ def test_split_categories(small_parquet):
 
 
 def test_empty_query_raises(small_parquet):
-    reader = ParquetReader(f"data/{small_parquet}")
+    reader = ParquetReader(small_parquet)
     with pytest.raises(ValueError):
         reader._apply_query("puzzle_id < 0")
 
 
 def test_reader_dataloaders(small_parquet):
-    reader = ParquetReader(f"data/{small_parquet}")
+    reader = ParquetReader(small_parquet)
     train_loader, test_loader, _, _ = reader.create_dataloaders(
         train_ratio=0.7, batch_size=16, random_seed=1
     )
