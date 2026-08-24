@@ -7,6 +7,7 @@ from compactreasoningmodels.solving_traces.discrete_genetic import DiscreteGenet
 from compactreasoningmodels.solving_traces.global_min_violations import GlobalMinViolations
 from compactreasoningmodels.solving_traces.local_min_violations import LocalMinViolations
 from compactreasoningmodels.solving_traces.arc_consistency import ArcConsistency
+from compactreasoningmodels.solving_traces.model_solver import ModelSolver
 from compactreasoningmodels.solving_traces.similarity_measures import MSE, PearsonCorrelation, SSIMSimilarity
 from compactreasoningmodels.datasets.jsonl import JsonlDataset
 
@@ -14,7 +15,8 @@ SOLVERS = {
     "arc_consistency": ArcConsistency, 
     "local_min_violations": LocalMinViolations, 
     "global_min_violations": GlobalMinViolations, 
-    "discrete_genetic": DiscreteGeneticAlgorithm
+    "discrete_genetic": DiscreteGeneticAlgorithm,
+    "model_solver": ModelSolver
 }
 
 METRICS = {
