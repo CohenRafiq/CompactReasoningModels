@@ -117,57 +117,36 @@ class ArcConsistency(SolvingTrace):
         return output_grid
 
     def heatmap_step(self, grid: np.ndarray) -> np.ndarray:
-        height, width = grid.shape
         known_grid = self._known_from_grid(grid)
 
-        row_grid = self._loop_directions(grid, self.clues[:height], known_grid)
+        row_grid = self._loop_directions(grid, self.clues[0], known_grid)
         if row_grid is None:
             return grid
 
-        col_grid = self._loop_directions(grid.T, self.clues[height:], known_grid.T)
+        col_grid = self._loop_directions(grid.T, self.clues[1], known_grid.T)
         if col_grid is None:
             return grid
 
         combined = self._combine(row_grid, col_grid.T)
         return grid if combined is None else combined
 
-    def step(self, grid: np.ndarray) -> np.ndarray:
-        heatmap = self.heatmap_step(grid)
-
-        was_unresolved = self._known_from_grid(grid) == -1
-        now_resolved = self._known_from_grid(heatmap) != -1
-        newly_resolved = was_unresolved & now_resolved
-
-        new_grid = grid.copy()
-        if np.any(newly_resolved):
-            new_grid[newly_resolved] = np.round(heatmap[newly_resolved])
-            return new_grid
-
-        unresolved = np.argwhere(was_unresolved)
-        if len(unresolved) == 0:
-            return new_grid
-
-        dist_to_edge = np.abs(heatmap[was_unresolved] - 0.5)
-        i, j = unresolved[np.argmax(dist_to_edge)]
-        new_grid[i, j] = round(heatmap[i, j])
-        return new_grid
-
 
 if __name__ == "__main__":
-    clues = [
-        [3],
-        [1, 1],
-        [3],
-        [1, 1],
-        [3],
-        [3],
-        [1, 1],
-        [3],
-        [1, 1],
-        [3],
-    ]
+    clues = np.array([[
+        [0, 0, 0],
+        [3, 0, 0],
+        [1, 1, 0],
+        [3, 0, 0],
+        [0, 0, 0]
+    ],[
+        [0, 0, 0],
+        [3, 0, 0],
+        [1, 1, 0],
+        [3, 0, 0],
+        [0, 0, 0]
+    ]])
     solver = ArcConsistency(clues, (5, 5))
     grid = np.full((5, 5), 0.5)
-    for _ in range(100):
-        grid = solver.step(grid)
+    for _ in range(5):
+        grid = solver.heatmap_step(grid)
         print(grid)

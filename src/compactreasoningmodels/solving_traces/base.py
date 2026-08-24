@@ -55,19 +55,16 @@ class SolvingTrace(ABC):
 
         return runs == list(clue)
 
-    def try_solve(self, max_steps: int = 1000) -> tuple[bool, list[np.ndarray]]:
+    def try_solve(self, max_steps: int = 1000, alpha: float = 1.0) -> tuple[bool, list[np.ndarray]]:
         solved = False
         for _ in range(max_steps):
-            new_grid = self.step(self.traces[-1])
+            grid_step = self.heatmap_step(self.traces[-1])
+            new_grid = alpha * grid_step + (1 - alpha) * self.traces[-1]
             self.traces.append(new_grid)
             if self._is_solved(self.clues, new_grid):
                 solved = True
                 break
         return solved, self.traces
-
-    @abstractmethod
-    def step(self, grid: np.ndarray) -> np.ndarray:
-        ...
 
     @abstractmethod
     def heatmap_step(self, grid: np.ndarray) -> np.ndarray:
