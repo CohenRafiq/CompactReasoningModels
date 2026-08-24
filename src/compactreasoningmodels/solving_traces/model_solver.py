@@ -37,12 +37,21 @@ class ModelSolver(SolvingTrace):
     def compress_categorical_abstain(self, grid: torch.Tensor) -> np.ndarray:
         # Input (3, H, W) → Output (H, W)
         smooth = torch.softmax(grid, dim=0)
-        compressed = (smooth[1] + 0.5 * smooth[2])/3
+        compressed = smooth[1] + 0.5 * smooth[2]
         return compressed.cpu().detach().numpy()
 
 
 
-    def heatmap_step(self, grid: np.ndarray, num_steps: int = 6) -> np.ndarray:
+    def heatmap_step(self, grid: np.ndarray) -> np.ndarray:
+        with torch.no_grad():
+            logits = self.model(
+                self.tensor_clues, layer_num=1
+                ).cpu().detach()[0].reshape(3, 5, 5)
+            if logits.ndim == 3 or logits.shape[0] == 3:
+                logits = self.compress_categorical_abstain(logits)
+        return logits
+
+    def heatmap(self, num_steps: int = 1) -> list[np.ndarray]:
         with torch.no_grad():
             logits = self.model(
                 self.tensor_clues, layer_num=num_steps
@@ -50,6 +59,7 @@ class ModelSolver(SolvingTrace):
             if logits.ndim == 3 or logits.shape[0] == 3:
                 logits = self.compress_categorical_abstain(logits)
         return logits
+
 
 
 if __name__ == "__main__":

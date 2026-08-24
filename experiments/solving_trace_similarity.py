@@ -25,6 +25,30 @@ METRICS = {
     "SSIM": SSIMSimilarity()
 }
 
+def print_distribution_ascii(data, solver_name, bins=20, width=50):
+    values = np.array(data).flatten()
+    values = values[(values >= 0) & (values <= 1)]
+    hist, bin_edges = np.histogram(values, bins=bins, range=(0, 1))
+    max_count = hist.max()
+    print(f"\n{solver_name}")
+    print("-" * (width + 20))
+    print(f"  Count: {len(values)} values")
+    print(f"  Mean: {np.mean(values):.4f}")
+    print(f"  Std: {np.std(values):.4f}")
+    print(f"  Min: {np.min(values):.4f}")
+    print(f"  Max: {np.max(values):.4f}")
+    print()
+    for i in range(len(hist)):
+        if hist[i] > 0:
+            bar_length = int((hist[i] / max_count) * width)
+            bar = "█" * bar_length
+            percentage = (hist[i] / len(values)) * 100
+            print(f"{bin_edges[i]:.2f}-{bin_edges[i+1]:.2f}: {bar} {percentage:.1f}%")
+        else:
+            print(f"{bin_edges[i]:.2f}-{bin_edges[i+1]:.2f}:")
+    
+    print("-" * (width + 20))
+
 def add_noise_to_grid(grid: np.ndarray, noise_level: float = 0.1) -> np.ndarray:
     noise = np.random.uniform(-noise_level, noise_level, size=grid.shape)
     noisy_grid = (1-noise_level) * grid + noise
@@ -44,11 +68,11 @@ def main(number_samples=100, print_every=None, noise_level=0.1):
         target = target_tensor.squeeze(0).numpy()
         initial_grid = np.random.uniform(0.1, 0.9, size=target.shape)
         
-        solvers = {name: solver_cls(clues, target.shape)
+        solvers = {name: solver_cls(clues, target.shape, initial_grid=initial_grid)
                    for name, solver_cls in SOLVERS.items()}
         
         for name, solver in solvers.items():
-            hm = solver.heatmap_step(initial_grid)
+            hm = solver.heatmap(num_steps=1)
             heatmaps[name].append(hm)
 
         if print_every is not None and (i + 1) % print_every == 0:
@@ -62,12 +86,15 @@ def main(number_samples=100, print_every=None, noise_level=0.1):
         for name in METRICS
     }
 
-    for noisy, clean in itertools.product(solver_names, repeat=2):
-        noisy_grids = add_noise_to_grid(np.array(heatmaps[noisy]), noise_level=noise_level)
-        clean_grids = np.array(heatmaps[clean])
+    clean_grids = {solver: np.array(heatmaps[solver]) for solver in solver_names}
+    noisy_grids = {
+        solver: add_noise_to_grid(clean_grids[solver], noise_level=noise_level)
+        for solver in solver_names
+    }
 
+    for noisy, clean in itertools.product(solver_names, repeat=2):
         for metric_name, metric in METRICS.items():
-            result = np.mean(metric(noisy_grids, clean_grids))
+            result = np.mean(metric(noisy_grids[noisy], clean_grids[clean]))
             matrices[metric_name].loc[noisy, clean] = result
 
     for metric_name, matrix in matrices.items():
@@ -77,5 +104,8 @@ def main(number_samples=100, print_every=None, noise_level=0.1):
         print(matrix)
         print()
 
+    for solver in solver_names:
+        print_distribution_ascii(heatmaps[solver], solver)
+
 if __name__ == "__main__":
-    main(number_samples=20, print_every=5, noise_level=0.3)
+    main(number_samples=20, print_every=5, noise_level=0.1)

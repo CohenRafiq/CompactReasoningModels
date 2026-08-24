@@ -2,6 +2,7 @@ import math
 
 import numpy as np
 import torch
+import random
 
 from compactreasoningmodels.losses.nonogram import NonogramLoss
 from compactreasoningmodels.solving_traces.base import SolvingTrace
@@ -12,11 +13,12 @@ from compactreasoningmodels.solving_traces.base import SolvingTrace
 class LocalMinViolations(SolvingTrace):
 
     def __init__(self, clues: np.ndarray, grid_shape: tuple[int, int],
-                 initial_grid: np.ndarray | None = None):
+                 initial_grid: np.ndarray | None = None, hit_rate: float = 0.5):
         super().__init__(clues, grid_shape, initial_grid)
         self.loss_fn = NonogramLoss(reduction="mean")
         self.tensor_clues = torch.tensor(clues.flatten(), dtype=torch.float32).unsqueeze(0)
         self.rows, self.cols = grid_shape
+        self.hit_rate = hit_rate
 
     def min_loss_cell(self, logit_grid: torch.Tensor, r: int, c: int) -> torch.Tensor:
         flat_idx = r * self.cols + c
@@ -85,8 +87,9 @@ class LocalMinViolations(SolvingTrace):
 
             for r in range(self.rows):
                 for c in range(self.cols):
-                    flat_idx = r * self.cols + c
-                    new_logits[flat_idx] = self.min_loss_cell(snapshot, r, c)
+                    if random.random() < self.hit_rate:  # Only update a fraction of cells
+                        flat_idx = r * self.cols + c
+                        new_logits[flat_idx] = self.min_loss_cell(snapshot, r, c)
 
         new_grid = torch.sigmoid(new_logits.view(self.rows, self.cols)).numpy()
         return new_grid
