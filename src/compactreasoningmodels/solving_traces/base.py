@@ -78,7 +78,7 @@ class SolvingTrace(ABC):
             grid_step = self.heatmap_step(grids[-1])
             grids.append(grid_step)
         return grids[-1]
-    
+
     @abstractmethod
     def heatmap_step(self, grid: np.ndarray) -> np.ndarray:
         ...

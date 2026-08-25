@@ -1,8 +1,8 @@
 import math
+import random
 
 import numpy as np
 import torch
-import random
 
 from compactreasoningmodels.losses.nonogram import NonogramLoss
 from compactreasoningmodels.solving_traces.base import SolvingTrace
