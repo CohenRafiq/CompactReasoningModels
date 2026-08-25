@@ -12,8 +12,8 @@ class NoisySimilarityExperiment(BaseExperiment):
         noise = torch.rand_like(grid) * 2 * noise_level - noise_level
         return (1 - noise_level) * grid + noise
 
-    def next_solver(self, solver_steps: dict[str, int] | int | None = None
-                    ) -> Generator[tuple[str, int], None, None]:
+    def next_solver(self, **kwargs) -> Generator[tuple[str, int], None, None]:
+        solver_steps = kwargs.get("solver_steps")
         match solver_steps:
             case dict():
                 steps = solver_steps

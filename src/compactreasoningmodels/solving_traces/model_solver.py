@@ -53,7 +53,7 @@ class ModelSolver(SolvingTrace):
                 logits = self.compress_categorical_abstain(logits)
         return logits
 
-    def heatmap(self, num_steps: int = 1) -> list[np.ndarray]:
+    def heatmap(self, num_steps: int = 1) -> np.ndarray:
         with torch.no_grad():
             logits = self.model(
                 self.tensor_clues, layer_num=num_steps

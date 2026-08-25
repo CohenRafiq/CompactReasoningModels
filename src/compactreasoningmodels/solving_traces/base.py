@@ -118,7 +118,7 @@ class SolvingTrace(ABC):
                 break
         return solved, self.traces
 
-    def heatmap(self, num_steps: int = 1) -> list[np.ndarray]:
+    def heatmap(self, num_steps: int = 1) -> np.ndarray:
         grids = [self.initial_grid]
         for _ in range(num_steps):
             grid_step = self.heatmap_step(grids[-1])

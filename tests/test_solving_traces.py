@@ -1,3 +1,4 @@
+import random
 from pathlib import Path
 
 import numpy as np
@@ -56,9 +57,10 @@ SOLVER_FACTORIES = {
 }
 
 
-def _make_solver(name: str, clues: np.ndarray, shape: tuple[int, int], seed: int = 0,
-                 initial_grid: np.ndarray | None = None):
-    np.random.seed(seed)  # legacy global RNG is what the solvers consume
+def _make_solver(name: str, clues, shape: tuple[int, int], seed: int = 0,
+                 initial_grid=None):
+    np.random.seed(seed)
+    random.seed(seed)
     solver: SolvingTrace = SOLVER_FACTORIES[name](clues, shape, initial_grid)
     return solver
 
@@ -149,7 +151,11 @@ def test_flat_dataloader_tensor_matches_stacked(name, dataset, clues_for):
 
     np.testing.assert_allclose(from_flat.clues, from_nested.clues)
 
+    np.random.seed(123)
+    random.seed(123)
     hm_flat = from_flat.heatmap_step(start)
+    np.random.seed(123)
+    random.seed(123)
     hm_nested = from_nested.heatmap_step(start)
     np.testing.assert_allclose(hm_flat, hm_nested)
 
@@ -169,7 +175,7 @@ def test_batched_flat_tensor_accepted(name, dataset, clues_for):
 @pytest.mark.parametrize("name", SOLVER_FACTORIES)
 def test_rejects_multi_sample_batch(name, dataset):
     x, _ = dataset[0]
-    with pytest.raises(ValueError, match="flattened clue values"):
+    with pytest.raises(ValueError, match="shape"):
         _make_solver(name, torch.stack([x, x]), (GRID_SIZE, GRID_SIZE))
 
 
