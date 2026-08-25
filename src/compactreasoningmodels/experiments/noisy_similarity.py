@@ -1,79 +1,52 @@
-from collections.abc import Generator
-
+import itertools
 import pandas as pd
 import torch
+import numpy as np
 
 from compactreasoningmodels.experiments.base import BaseExperiment
+from compactreasoningmodels.solving_traces.similarity_measures import SimilarityMeasure
+from compactreasoningmodels.utils.types import SolverProfile
 
 
 class NoisySimilarityExperiment(BaseExperiment):
 
-    def _add_noise_to_grid(self, grid: torch.Tensor, noise_level: float = 0.1) -> torch.Tensor:
-        noise = torch.rand_like(grid) * 2 * noise_level - noise_level
+    def _add_noise_to_grid(self, grid: np.ndarray, noise_level: float = 0.1) -> np.ndarray:
+        noise = np.random.rand(*grid.shape) * 2 * noise_level - noise_level
         return (1 - noise_level) * grid + noise
 
-    def next_solver(self, **kwargs) -> Generator[tuple[str, int], None, None]:
-        solver_steps = kwargs.get("solver_steps")
-        match solver_steps:
-            case dict():
-                steps = solver_steps
-            case int():
-                steps = dict.fromkeys(self.solvers, solver_steps)
-            case None:
-                steps = dict.fromkeys(self.solvers, 1)
-            case _:
-                raise TypeError(
-                    f"solver_steps must be dict, int, or None, got {type(solver_steps)}"
-                    )
-        for solver_name in self.solvers:
-            yield solver_name, steps.get(solver_name, 1)
-
-    def compute_clean_heatmaps(self, num_samples: int = 100, initial_grid: str = "random",
-                                solver_steps: dict[str, int] | int | None = None
-                                ) -> dict[str, torch.Tensor]:
-        clean_heatmaps: dict[str, list[torch.Tensor]] = {name: [] for name in self.solvers}
-        for name, _, heatmap, _ in self.generate_heatmaps(
-                num_samples=num_samples,
-                initial_grid=initial_grid,
-                solver_steps=solver_steps):
-            clean_heatmaps[name].append(torch.tensor(heatmap))
-
-        return {name: torch.stack(grids) for name, grids in clean_heatmaps.items()}
-
-    def run_experiment(self, num_samples: int = 100, initial_grid: str = "random",
-                        solver_steps: dict[str, int] | int | None = None,
-                        noise_level: float = 0.1,
-                        ) -> dict[str, pd.DataFrame]:
-
-        clean_heatmaps = self.compute_clean_heatmaps(
-            num_samples=num_samples,
-            initial_grid=initial_grid,
-            solver_steps=solver_steps)
-
-        noisy_heatmaps = {
-            name: self._add_noise_to_grid(grids, noise_level=noise_level)
-            for name, grids in clean_heatmaps.items()
+    def run_experiment(self, heatmaps: dict[SolverProfile, list[tuple[np.ndarray, np.ndarray]]], 
+                       metrics: list[SimilarityMeasure] | None = None, 
+                       **kwargs) -> dict[SolverProfile, dict[tuple[SolverProfile, SolverProfile], float]]:
+        clean_heatmaps = {
+            key: [grid for grid, _, _ in grids]
+            for key, grids in heatmaps.items()
         }
+        noisy_heatmaps = {
+            key: [self._add_noise_to_grid(grid, noise_level=kwargs.get("noise_level", 0.1)) for grid in grids]
+            for key, grids in clean_heatmaps.items()
+        }
+        results = {}
+        for metric in metrics or []:
+            metric_results = {}
+            for clean_profile, noisy_profile in itertools.product(clean_heatmaps.keys(), repeat=2):
+                score = metric()(clean_heatmaps[clean_profile], noisy_heatmaps[noisy_profile]).mean().item()
+                metric_results[(clean_profile, noisy_profile)] = score
+            results[metric] = metric_results
+        return results
 
-        matrices = {}
-        for metric_name, metric in self.metrics.items():
-            scores = {
-                noisy_name: {
-                    clean_name: metric()(noisy_heatmaps[noisy_name],
-                                       clean_heatmaps[clean_name]).mean().item()
-                    for clean_name in self.solvers
-                }
-                for noisy_name in self.solvers
-            }
-            matrices[metric_name] = pd.DataFrame(scores)
+    def display_results(
+        self,
+        results: dict[SimilarityMeasure, dict[tuple[SolverProfile, SolverProfile], float]],
+    ) -> None:
+        for metric, metric_results in results.items():
+            series = pd.Series(metric_results)
+            series.index.names = ["clean", "noisy"]
+            matrix = series.unstack("noisy").round(4)
 
-        self.print_results(matrices)
-        return matrices
+            label = lambda p: f"{p.name} (steps={p.num_steps})"
+            matrix.index = matrix.index.map(label)
+            matrix.columns = matrix.columns.map(label)
 
-    def print_results(self, matrices: dict[str, pd.DataFrame]):
-        for metric_name, matrix in matrices.items():
-            matrix = matrix.round(4)
-            matrices[metric_name] = matrix
-            print(f"{metric_name} Matrix (rows=clean, cols=noisy):")
+            print(f"{metric.__name__} Matrix (rows=clean, cols=noisy):")
             print(matrix)
             print()
