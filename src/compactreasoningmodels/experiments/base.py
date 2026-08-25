@@ -50,8 +50,9 @@ class BaseExperiment(ABC):
         self.dataset = JsonlDataset(dataset_path, target_shape=target_shape)
         self.dataloader = torch.utils.data.DataLoader(self.dataset, batch_size=1, shuffle=False)
 
-    def generate_heatmaps(self, num_samples: int = 100, initial_grid: str = "random",
-                           **solver_kwargs):
+    def generate_heatmaps(self, num_samples: int = 100,
+                          initial_grid: str = "random", **solver_kwargs
+                          ) -> Generator[tuple[str, int, np.ndarray, np.ndarray], None, None]:
         for i, (input_tensor, target_grid) in enumerate(self.dataloader):
             if i >= num_samples:
                 break

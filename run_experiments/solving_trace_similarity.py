@@ -63,12 +63,10 @@ def main(number_samples=100, print_every=None, noise_level=0.1):
     for i, (input_tensor, target_tensor) in enumerate(dataloader):
         if i >= number_samples:
             break
-        clues = input_tensor.squeeze(0).numpy()
-        clues = clues.reshape(2, 5, 3)
         target = target_tensor.squeeze(0).numpy()
         initial_grid = np.random.uniform(0.1, 0.9, size=target.shape)
-        
-        solvers = {name: solver_cls(clues, target.shape, initial_grid=initial_grid)
+
+        solvers = {name: solver_cls(input_tensor, target.shape, initial_grid=initial_grid)
                    for name, solver_cls in SOLVERS.items()}
         
         for name, solver in solvers.items():

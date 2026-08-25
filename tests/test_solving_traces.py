@@ -2,6 +2,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+import torch
 
 from compactreasoningmodels.datasets.jsonl import JsonlDataset
 from compactreasoningmodels.solving_traces.arc_consistency import ArcConsistency
@@ -130,6 +131,62 @@ def test_try_solve_trace_structure(name, clues_for):
     assert len(traces) >= 2
     np.testing.assert_array_equal(traces[0], start)
     assert all(t.shape == (GRID_SIZE, GRID_SIZE) for t in traces)
+
+
+def test_blank_grid_matches_grid_shape():
+    blank = SolvingTrace._blank_grid(3, 5)
+    assert blank.shape == (3, 5)
+    assert np.all(blank == 0.5)
+
+
+@pytest.mark.parametrize("name", SOLVER_FACTORIES)
+def test_flat_dataloader_tensor_matches_stacked(name, dataset, clues_for):
+    flat_x, _ = dataset[0]  # torch tensor of shape (H*K_row + W*K_col,)
+    start = _initial_grid()
+
+    from_flat = _make_solver(name, flat_x, (GRID_SIZE, GRID_SIZE))
+    from_nested = _make_solver(name, clues_for(0), (GRID_SIZE, GRID_SIZE))
+
+    np.testing.assert_allclose(from_flat.clues, from_nested.clues)
+
+    hm_flat = from_flat.heatmap_step(start)
+    hm_nested = from_nested.heatmap_step(start)
+    np.testing.assert_allclose(hm_flat, hm_nested)
+
+
+@pytest.mark.parametrize("name", SOLVER_FACTORIES)
+def test_batched_flat_tensor_accepted(name, dataset, clues_for):
+    batched_x, _ = dataset[0]
+    _ = _initial_grid()
+
+    from_batched = _make_solver(name, batched_x.unsqueeze(0), (GRID_SIZE, GRID_SIZE))
+    from_nested = _make_solver(name, clues_for(0), (GRID_SIZE, GRID_SIZE))
+
+    np.testing.assert_allclose(from_batched.clues, from_nested.clues)
+    assert from_batched.clues.shape == (2, GRID_SIZE, MAX_CLUE_LEN)
+
+
+@pytest.mark.parametrize("name", SOLVER_FACTORIES)
+def test_rejects_multi_sample_batch(name, dataset):
+    x, _ = dataset[0]
+    with pytest.raises(ValueError, match="flattened clue values"):
+        _make_solver(name, torch.stack([x, x]), (GRID_SIZE, GRID_SIZE))
+
+
+def test_tensor_initial_grid_converted_to_numpy(dataset):
+    x, y = dataset[0]
+    solver = ArcConsistency(x, (GRID_SIZE, GRID_SIZE), initial_grid=y)
+
+    assert isinstance(solver.initial_grid, np.ndarray)
+    assert solver.initial_grid.shape == (GRID_SIZE, GRID_SIZE)
+    np.testing.assert_allclose(solver.initial_grid, y.numpy())
+    np.testing.assert_array_equal(solver.traces[0], solver.initial_grid)
+
+
+def test_flat_clue_length_mismatch_raises(dataset):
+    x, _ = dataset[0]
+    with pytest.raises(ValueError, match="flattened clue values"):
+        ArcConsistency(x[:-1], (GRID_SIZE, GRID_SIZE))
 
 
 def test_arc_consistency_solves_unique_puzzle():

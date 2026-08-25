@@ -10,8 +10,10 @@ from compactreasoningmodels.utils.load_model import load_model
 
 class ModelSolver(SolvingTrace):
 
-    def __init__(self, clues: np.ndarray, grid_shape: tuple[int, int],
-                 model: BaseModel | None = None, initial_grid: np.ndarray | None = None):
+    def __init__(self, clues: np.ndarray | torch.Tensor,
+                 grid_shape: tuple[int, int],
+                 model: BaseModel | None = None,
+                 initial_grid: np.ndarray | torch.Tensor | None = None):
         super().__init__(clues, grid_shape, initial_grid)
         if model is None:
             model = load_model(
@@ -28,7 +30,7 @@ class ModelSolver(SolvingTrace):
         self.model.eval()
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.tensor_clues = (
-            torch.from_numpy(clues)
+            torch.from_numpy(np.ascontiguousarray(self.clues))
             .flatten()
             .unsqueeze(0)
             .to(device)

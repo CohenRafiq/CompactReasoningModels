@@ -59,7 +59,7 @@ class NoisySimilarityExperiment(BaseExperiment):
         for metric_name, metric in self.metrics.items():
             scores = {
                 noisy_name: {
-                    clean_name: metric(noisy_heatmaps[noisy_name],
+                    clean_name: metric()(noisy_heatmaps[noisy_name],
                                        clean_heatmaps[clean_name]).mean().item()
                     for clean_name in self.solvers
                 }

@@ -9,11 +9,12 @@ from compactreasoningmodels.solving_traces.base import SolvingTrace
 
 class GlobalMinViolations(SolvingTrace):
 
-    def __init__(self, clues: np.ndarray, grid_shape: tuple[int, int],
-                 initial_grid: np.ndarray | None = None):
+    def __init__(self, clues: np.ndarray | torch.Tensor,
+                 grid_shape: tuple[int, int],
+                 initial_grid: np.ndarray | torch.Tensor | None = None):
         super().__init__(clues, grid_shape, initial_grid)
         self.loss_fn = NonogramLoss(reduction="mean")
-        self.tensor_clues = torch.tensor(clues.flatten(), dtype=torch.float32).unsqueeze(0)
+        self.tensor_clues = torch.tensor(self.clues.flatten(), dtype=torch.float32).unsqueeze(0)
         self.rows, self.cols = grid_shape
 
     def heatmap_step(

@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 from compactreasoningmodels.solving_traces.base import SolvingTrace
 
@@ -10,8 +11,9 @@ from compactreasoningmodels.solving_traces.base import SolvingTrace
 
 class DiscreteGeneticAlgorithm(SolvingTrace):
     def __init__(
-            self, clues: np.ndarray, grid_shape: tuple[int, int],
-            initial_grid: np.ndarray | None = None, population_size: int = 100,
+            self, clues: np.ndarray | torch.Tensor, grid_shape: tuple[int, int],
+            initial_grid: np.ndarray | torch.Tensor | None = None,
+            population_size: int = 100,
             concurrent_samples: int = 100, mutation_rate: float = 0.01,
             tournament_size: int = 3):
         super().__init__(clues, grid_shape, initial_grid)

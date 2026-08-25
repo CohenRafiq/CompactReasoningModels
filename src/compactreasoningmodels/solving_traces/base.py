@@ -1,23 +1,69 @@
 from abc import ABC, abstractmethod
 
 import numpy as np
+import torch
 
 
 class SolvingTrace(ABC):
 
-    def __init__(self, clues: np.ndarray, grid_shape: tuple[int, int],
-                 initial_grid: np.ndarray | None = None):
+    def __init__(self, clues: np.ndarray | torch.Tensor,
+                 grid_shape: tuple[int, int],
+                 initial_grid: np.ndarray | torch.Tensor | None = None):
         super().__init__()
-        self.clues = clues
+        self.clues = self._normalize_clues(clues, grid_shape)
         self.grid_size = grid_shape
         self.initial_grid = (
-            initial_grid if initial_grid is not None else self._blank_grid(*grid_shape)
+            self._as_numpy(initial_grid) if initial_grid is not None
+            else self._blank_grid(*grid_shape)
         )
         self.traces = [self.initial_grid]
 
     @staticmethod
-    def _blank_grid(width: int, height: int) -> np.ndarray:
-        return np.full((height, width), 0.5, dtype=float)
+    def _blank_grid(rows: int, cols: int) -> np.ndarray:
+        return np.full((rows, cols), 0.5, dtype=float)
+
+    @staticmethod
+    def _as_numpy(data: np.ndarray | torch.Tensor) -> np.ndarray:
+        if isinstance(data, torch.Tensor):
+            return data.detach().cpu().numpy()
+        return np.asarray(data)
+
+    @staticmethod
+    def _normalize_clues(clues: np.ndarray | torch.Tensor,
+                         grid_shape: tuple[int, int]) -> np.ndarray:
+        arr = SolvingTrace._as_numpy(clues)
+        rows, cols = grid_shape
+        k_row = (cols + 1) // 2
+        k_col = (rows + 1) // 2
+        flat_len = rows * k_row + cols * k_col
+
+        if arr.ndim == 2 and arr.shape[0] == 1:
+            arr = arr.reshape(-1)
+
+        if arr.ndim == 1:
+            if arr.shape[0] != flat_len:
+                raise ValueError(
+                    f"Expected {flat_len} flattened clue values for a {rows}x{cols} "
+                    f"grid ({rows}x{k_row} row clues + {cols}x{k_col} column clues), "
+                    f"got {arr.shape[0]}"
+                )
+            if k_row != k_col:
+                raise ValueError(
+                    "Flattened clues are only supported for square grids; pass "
+                    "row/column clues as a (2, ...) array instead"
+                )
+            row_clues = arr[: rows * k_row].reshape(rows, k_row)
+            col_clues = arr[rows * k_row:].reshape(cols, k_col)
+            return np.stack([row_clues, col_clues])
+
+        if arr.ndim == 3 and arr.shape[0] == 2:
+            return arr
+
+        raise ValueError(
+            f"clues must be a tensor/array of shape ({flat_len},) or "
+            f"(1, {flat_len}) with the flat [row clues; column clues] dataloader "
+            f"layout, or a stacked array of shape (2, H, K). Got shape {arr.shape}"
+        )
 
     @staticmethod
     def _is_solved(clues: np.ndarray, grid: np.ndarray) -> bool:
