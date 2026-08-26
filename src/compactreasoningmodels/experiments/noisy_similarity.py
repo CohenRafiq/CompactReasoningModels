@@ -38,15 +38,18 @@ class NoisySimilarityExperiment(BaseExperiment):
         self,
         results: dict[SimilarityMeasure, dict[tuple[SolverProfile, SolverProfile], float]],
     ) -> None:
+        matrices = []
         for metric, metric_results in results.items():
             series = pd.Series(metric_results)
             series.index.names = ["clean", "noisy"]
             matrix = series.unstack("noisy").round(4)
 
-            label = lambda p: f"{p.name} (steps={p.num_steps})"
+            label = lambda p: f"{p.name[:4]} ({p.num_steps})"
             matrix.index = matrix.index.map(label)
             matrix.columns = matrix.columns.map(label)
 
             print(f"{metric.__name__} Matrix (rows=clean, cols=noisy):")
             print(matrix)
             print()
+            matrices.append(matrix)
+        return matrices
