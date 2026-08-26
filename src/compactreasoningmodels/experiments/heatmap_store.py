@@ -1,14 +1,15 @@
 import numpy as np
-from torch.utils.data import DataLoader
 import torch
+from torch.utils.data import DataLoader
 
+from compactreasoningmodels.losses.nonogram import NonogramLoss
 from compactreasoningmodels.solving_traces.arc_consistency import ArcConsistency
 from compactreasoningmodels.solving_traces.discrete_genetic import DiscreteGeneticAlgorithm
 from compactreasoningmodels.solving_traces.global_min_violations import GlobalMinViolations
 from compactreasoningmodels.solving_traces.local_min_violations import LocalMinViolations
 from compactreasoningmodels.solving_traces.model_solver import ModelSolver
-from compactreasoningmodels.losses.nonogram import NonogramLoss
 from compactreasoningmodels.utils.types import SolverProfile
+
 
 class HeatmapStore:
     _solvers = {
@@ -23,7 +24,7 @@ class HeatmapStore:
         self.dataloader = dataloader
         self.heatmaps = {}
         self.initial_grid = HeatmapStore._gen_inital_grid(
-            initial_grid_type, 
+            initial_grid_type,
             self.dataloader.dataset.target_shape)
 
     @staticmethod
@@ -51,7 +52,7 @@ class HeatmapStore:
             for input_tensor, target_grid in self.dataloader:
                 solver_class = self._solvers[solver_profile.name]
                 solver_instance = solver_class(
-                    input_tensor, target_shape, 
+                    input_tensor, target_shape,
                     initial_grid=self.initial_grid)
                 heatmap = solver_instance.heatmap(num_steps=solver_profile.num_steps)
                 results.append((heatmap, input_tensor, target_grid.squeeze(0).numpy()))
@@ -81,7 +82,7 @@ class HeatmapStore:
                     print(f"{bin_edges[i]:.2f}-{bin_edges[i+1]:.2f}: {bar} {percentage:.1f}%")
                 else:
                     print(f"{bin_edges[i]:.2f}-{bin_edges[i+1]:.2f}:")
-            
+
             print("-" * 70)
 
     def display_accuracy(self) -> None:
@@ -109,4 +110,3 @@ class HeatmapStore:
             average_loss = total_loss / len(results)
             print(f"{solver_name} (steps={num_steps}): Average Loss = {average_loss:.4f}")
 
-        

@@ -1,7 +1,7 @@
 import itertools
-import pandas as pd
-import torch
+
 import numpy as np
+import pandas as pd
 
 from compactreasoningmodels.experiments.base import BaseExperiment
 from compactreasoningmodels.solving_traces.similarity_measures import SimilarityMeasure
@@ -14,8 +14,8 @@ class NoisySimilarityExperiment(BaseExperiment):
         noise = np.random.rand(*grid.shape) * 2 * noise_level - noise_level
         return (1 - noise_level) * grid + noise
 
-    def run_experiment(self, heatmaps: dict[SolverProfile, list[tuple[np.ndarray, np.ndarray]]], 
-                       metrics: list[SimilarityMeasure] | None = None, 
+    def run_experiment(self, heatmaps: dict[SolverProfile, list[tuple[np.ndarray, np.ndarray]]],
+                       metrics: list[SimilarityMeasure] | None = None,
                        **kwargs) -> dict[SolverProfile, dict[tuple[SolverProfile, SolverProfile], float]]:
         clean_heatmaps = {
             key: [grid for grid, _, _ in grids]
