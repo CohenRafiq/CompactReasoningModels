@@ -41,38 +41,10 @@ class DiscreteGeneticAlgorithm(SolvingTrace):
 
     @staticmethod
     def _line_run_lengths(lines: np.ndarray, K: int) -> tuple[np.ndarray, np.ndarray]:
-        """Vectorized run-length extraction for a batch of binary lines.
+        """Vectorized run-length extraction for a batch of binary lines."""
+        from compactreasoningmodels.utils.grid import batch_line_clues
 
-        lines: (M, L) int array of 0/1.
-        Returns:
-          run_matrix: (M, K) run lengths in order, zero-padded to width K
-                      (mirrors how clues are stored, e.g. [3, 0, 0]).
-          num_runs:   (M,) actual number of runs in each line (used to catch
-                      the case where a line has MORE runs than K, which the
-                      zero-padded comparison alone wouldn't detect).
-        """
-        M, L = lines.shape
-        pad = np.zeros((M, L + 2), dtype=lines.dtype)
-        pad[:, 1:-1] = lines
-        diff = pad[:, 1:] - pad[:, :-1]  # (M, L+1)
-
-        starts_mask = diff == 1
-        ends_mask = diff == -1
-
-        cum_starts = np.cumsum(starts_mask, axis=1)  # (M, L+1)
-        num_runs = cum_starts[:, -1]
-
-        rows_s, cols_s = np.nonzero(starts_mask)
-        _, cols_e = np.nonzero(ends_mask)  # same row order/count as starts_mask by construction
-
-        lengths = cols_e - cols_s
-        run_rank = cum_starts[rows_s, cols_s] - 1
-
-        run_matrix = np.zeros((M, K), dtype=np.int32)
-        valid = run_rank < K
-        run_matrix[rows_s[valid], run_rank[valid]] = lengths[valid]
-
-        return run_matrix, num_runs
+        return batch_line_clues(lines, K)
 
     def count_violations_batch(self, grids: np.ndarray) -> np.ndarray:
         """Vectorized violation count for a whole batch of grids at once.

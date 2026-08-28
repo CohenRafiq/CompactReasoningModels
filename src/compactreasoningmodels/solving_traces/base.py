@@ -88,24 +88,14 @@ class SolvingTrace(ABC):
 
     @staticmethod
     def _check_clue(line: np.ndarray, clue: np.ndarray, epsilon: float = 1e-2) -> bool:
-        # Round if epsilon off 0 or 1
+        from compactreasoningmodels.utils.grid import get_line_clues
+
         line_rounded = [1 if cell > 1 - epsilon else 0 if cell < epsilon else -1 for cell in line]
 
         if -1 in line_rounded:
             return False
 
-        runs = []
-        current_run = 0
-        for cell in line_rounded:
-            if cell == 1:
-                current_run += 1
-            elif current_run > 0:
-                runs.append(current_run)
-                current_run = 0
-        if current_run > 0:
-            runs.append(current_run)
-
-        return runs == list(clue)
+        return get_line_clues(line_rounded) == list(clue)
 
     def try_solve(self, max_steps: int = 1000, alpha: float = 1.0) -> tuple[bool, list[np.ndarray]]:
         solved = False

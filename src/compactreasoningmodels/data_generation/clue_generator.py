@@ -1,8 +1,8 @@
 import random
-from collections.abc import Iterable
-from itertools import groupby
 
 import numpy as np
+
+from compactreasoningmodels.utils.grid import derive_clues_from_grid
 
 
 class ClueGenerator:
@@ -17,15 +17,10 @@ class ClueGenerator:
             [1 if random.random() < self.prob else 0 for _ in range(self.w)] for _ in range(self.h)
         ]
 
-    def _clue_line(self, line: Iterable[int]) -> list[int]:
-        return [sum(1 for _ in group) for key, group in groupby(line) if key == 1]
-
     def find_clues_from_grid(
         self, grid: list[list[int]]
     ) -> tuple[list[list[int]], list[list[int]]]:
-        row_clues = [self._clue_line(row) for row in grid]
-        col_clues = [self._clue_line(col) for col in zip(*grid, strict=True)]
-        return row_clues, col_clues
+        return derive_clues_from_grid(grid)
 
     def gen_clues_and_grid(
         self, max_attempts: int = 100
