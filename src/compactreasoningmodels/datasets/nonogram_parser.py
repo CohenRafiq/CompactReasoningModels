@@ -1,8 +1,10 @@
 import json
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
+
 import numpy as np
 import torch
+
 import compactreasoningmodels.utils.puzzle_types as t
 from compactreasoningmodels.utils.grid import derive_clues_from_grid
 
@@ -241,7 +243,7 @@ class NonogramParser:
 
     def _make_metadata(self, clues: t.Clues, grid: torch.Tensor) -> dict:
         grid_density = torch.sum(grid) / (grid.shape[0] * grid.shape[1])
-        mean_clue_runs = np.mean([len(row) for row in clues[0]] + 
+        mean_clue_runs = np.mean([len(row) for row in clues[0]] +
                                  [len(col) for col in clues[1]])
         return {
             "shape": grid.shape,

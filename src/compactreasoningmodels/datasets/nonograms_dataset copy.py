@@ -5,6 +5,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
+
 class NonogramsDataset(Dataset):
     def __init__(self, data: Any, max_rows: int|None=None, flat=True, padding="square") -> None:
         self.X, self.y, self.metadata = self._load_data(data, max_rows)
@@ -62,7 +63,7 @@ class NonogramsDataset(Dataset):
                     clues.append([entry.pop("rows"), entry.pop("cols")])
                     grids.append(entry.pop("grid"))
                     meta.append(entry)
-                elif (isinstance(entry, tuple) or 
+                elif (isinstance(entry, tuple) or
                       isinstance(entry, list)) and len(entry) == 2:
                     if isinstance(entry[0], list):
                         clues.append(entry[0])
@@ -93,7 +94,7 @@ class NonogramsDataset(Dataset):
             case list():
                 if all(isinstance(entry, dict) for entry in data):
                     return self._load_from_list_dictionary(data, max_rows)
-                
+
             case np.ndarray():
                 raise NotImplementedError("Loading from numpy array is not implemented yet.")
             case torch.Tensor():
