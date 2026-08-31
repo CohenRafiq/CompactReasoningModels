@@ -20,8 +20,8 @@ class NonogramDataset:
 
         self.X_raw, self.y_raw, self.meta = self._materialize(self.parse(data))
         self.meta = [m | self._make_metadata(c, g) for c, g, m in zip(self.X_raw, self.y_raw, self.meta)]
-        max_dimension = self.y_raw.shape[-1]
         self.y = self.y_raw.flatten(start_dim=1)
+        max_dimension = max(self.meta[0]["shape"])
 
         if padding == "positional":
             self.X, self.padding_mask = self._pad_positional(self.X_raw, max_dimension)
@@ -31,29 +31,8 @@ class NonogramDataset:
             raise ValueError(f"Unsupported padding type: {padding}")
 
     # ------------------------------------------------------------------ #
-    #  Materialization: parse() may return either a single ReformattedData
-    #  tuple (in-memory paths) or a generator of ReformattedData batches
-    #  (streaming file paths). Normalize to a single materialized tuple.
+    #  Parsing
     # ------------------------------------------------------------------ #
-
-    def _materialize(self, parsed: t.ReformattedData | Iterator[t.ReformattedData]) -> t.ReformattedData:
-        if isinstance(parsed, tuple):
-            return parsed
-
-        # It's a generator/iterator of batches: concatenate them.
-        all_clues: list[t.Clues] = []
-        all_grids: list[torch.Tensor] = []
-        all_meta: list[dict] = []
-
-        for clues_batch, grid_batch, meta_batch in parsed:
-            all_clues.extend(clues_batch)
-            all_grids.append(grid_batch)
-            all_meta.extend(meta_batch)
-
-        if not all_grids:
-            raise ValueError("No data parsed: input produced zero entries.")
-
-        return all_clues, torch.cat(all_grids, dim=0), all_meta
 
     def parse(self, data: str | Path | t.Dataset) -> t.ReformattedData | Iterator[t.ReformattedData]:
         if isinstance(data, (str, Path)):
@@ -72,120 +51,64 @@ class NonogramDataset:
             elif self._is_grid_list(data):
                 return self._parse_grid_dataset(data)
             else:
-                return self._parse_entry_list(data)
+                return self._stream_batches(iter(data))
         else:
             raise ValueError(f"Unsupported data type: {type(data)}")
-
-    # ------------------------------------------------------------------ #
-    #  File loaders — lazy, streaming, metadata-preserving
-    # ------------------------------------------------------------------ #
 
     def _parse_file(self, file_path: str | Path) -> Iterator[t.ReformattedData]:
         if isinstance(file_path, Path):
             file_path = str(file_path)
         if file_path.endswith(".jsonl"):
-            return self._parse_jsonl(file_path)
+            return self._stream_batches(self._iter_jsonl(file_path))
         elif file_path.endswith(".parquet"):
-            return self._parse_parquet(file_path)
+            return self._stream_batches(self._iter_parquet(file_path))
         elif file_path.endswith(".npy"):
-            return self._parse_npy(file_path)
+            return self._stream_batches(self._iter_npy(file_path))
         else:
             raise ValueError(f"Unsupported file format: {file_path}")
 
-    def _parse_jsonl(self, path: str) -> Iterator[t.ReformattedData]:
-        """Lazy-load JSONL: stream entries, batch into ReformattedData chunks."""
-        batch_clues, batch_grids, batch_meta = [], [], []
-        count = 0
 
+    def _iter_jsonl(self, path: str) -> Iterator[dict]:
         with open(path) as f:
             for line in f:
-                if self.max_size is not None and count >= self.max_size:
-                    break
+                yield json.loads(line)
 
-                raw = json.loads(line)
-
-                meta = dict(raw)
-                rows = meta.pop("rows", meta.pop("row_clues", []))
-                cols = meta.pop("cols", meta.pop("col_clues", []))
-                grid_raw = meta.pop("grid", meta.pop("solution", []))
-
-                batch_clues.append([rows, cols])
-                batch_grids.append(self._grid_to_tensor(grid_raw))
-                batch_meta.append(meta)
-                count += 1
-
-                # Yield full batches to bound memory
-                if len(batch_clues) >= self.batch_size:
-                    yield self._pack_batch(batch_clues, batch_grids, batch_meta)
-                    batch_clues, batch_grids, batch_meta = [], [], []
-
-        # Yield remainder
-        if batch_clues:
-            yield self._pack_batch(batch_clues, batch_grids, batch_meta)
-
-    def _parse_parquet(self, path: str) -> Iterator[t.ReformattedData]:
-        """Lazy-load Parquet: use pyarrow/parquet chunk iteration."""
+    def _iter_parquet(self, path: str) -> Iterator[dict]:
         import pyarrow.parquet as pq
 
         pf = pq.ParquetFile(path)
+        for batch in pf.iter_batches(batch_size=self.batch_size):
+            df = batch.to_pandas()
+            for _, row in df.iterrows():
+                yield row.to_dict()
+
+    def _iter_npy(self, path: str) -> Iterator[dict]:
+        arr = np.load(path, allow_pickle=True)
+        for item in arr:
+            if isinstance(item, np.void):
+                item = {name: item[name] for name in item.dtype.names}
+            yield dict(item)
+
+    def _stream_batches(self, entries: Iterator[dict]) -> Iterator[t.ReformattedData]:
+        batch_clues, batch_grids, batch_meta = [], [], []
         count = 0
 
-        for batch in pf.iter_batches(batch_size=self.batch_size):
-            batch_clues, batch_grids, batch_meta = [], [], []
+        for raw in entries:
+            if self.max_size is not None and count >= self.max_size:
+                break
 
-            # Convert to pandas for easier dict access (zero-copy where possible)
-            df = batch.to_pandas()
+            c, g, m = self._parse_single_entry(raw)
+            batch_clues.append(c)
+            batch_grids.append(g)
+            batch_meta.append(m)
+            count += 1
 
-            for _, row in df.iterrows():
-                if self.max_size is not None and count >= self.max_size:
-                    if batch_clues:
-                        yield self._pack_batch(batch_clues, batch_grids, batch_meta)
-                    return
-
-                # Preserve ALL fields as metadata
-                meta = row.to_dict()
-                rows = meta.pop("rows", meta.pop("row_clues", []))
-                cols = meta.pop("cols", meta.pop("col_clues", []))
-                grid_raw = meta.pop("grid", meta.pop("solution", []))
-
-                batch_clues.append([rows, cols])
-                batch_grids.append(self._grid_to_tensor(grid_raw))
-                batch_meta.append(meta)
-                count += 1
-
-            if batch_clues:
+            if len(batch_clues) >= self.batch_size:
                 yield self._pack_batch(batch_clues, batch_grids, batch_meta)
+                batch_clues, batch_grids, batch_meta = [], [], []
 
-    def _parse_npy(self, path: str) -> Iterator[t.ReformattedData]:
-        arr = np.load(path, allow_pickle=True)
-
-        # If it's a memmap or we want to chunk it
-        total = min(len(arr), self.max_size) if self.max_size else len(arr)
-        batch_sz = self.batch_size
-
-        for start in range(0, total, batch_sz):
-            end = min(start + batch_sz, total)
-            batch_clues, batch_grids, batch_meta = [], [], []
-
-            for item in arr[start:end]:
-                # item assumed to be dict-like or structured array
-                if isinstance(item, np.void):
-                    item = {name: item[name] for name in item.dtype.names}
-
-                meta = dict(item)
-                rows = meta.pop("rows", meta.pop("row_clues", []))
-                cols = meta.pop("cols", meta.pop("col_clues", []))
-                grid_raw = meta.pop("grid", meta.pop("solution", []))
-
-                batch_clues.append([rows, cols])
-                batch_grids.append(self._grid_to_tensor(grid_raw))
-                batch_meta.append(meta)
-
+        if batch_clues:
             yield self._pack_batch(batch_clues, batch_grids, batch_meta)
-
-    # ------------------------------------------------------------------ #
-    #  In-memory parsers
-    # ------------------------------------------------------------------ #
 
     def _parse_grid_dataset(self, data: t.GridDataset) -> t.ReformattedData:
         grids = self._normalize_grids(data)
@@ -194,18 +117,6 @@ class NonogramDataset:
         list_grids = [g.tolist() for g in grids]
         clues = [list(derive_clues_from_grid(g)) for g in list_grids]
         meta = [{} for _ in range(len(clues))]
-        return self._pack_batch(clues, grids, meta)
-
-    def _parse_entry_list(self, data: list[t.Entry]) -> t.ReformattedData:
-        if self.max_size:
-            data = data[:self.max_size]
-
-        clues, grids, meta = [], [], []
-        for entry in data:
-            c, g, m = self._parse_single_entry(entry)
-            clues.append(c)
-            grids.append(g)
-            meta.append(m)
         return self._pack_batch(clues, grids, meta)
 
     def _parse_split_data(self, data: t.SplitData) -> t.ReformattedData:
@@ -234,6 +145,45 @@ class NonogramDataset:
 
         else:
             raise ValueError(f"Entry must be EntryDict or (clues, grid) pair. Got: {type(entry)}")
+
+    # ------------------------------------------------------------------ #
+    #  Padding
+    # ------------------------------------------------------------------ #
+
+    def _pad_positional(self, clues: list[t.Clues], max_dimension: int) -> tuple[torch.Tensor, torch.Tensor]:
+        max_runs_in_clue = (max_dimension + 1) // 2  # worst case: alternating 1s and 0s
+        def pad(line: list[int]) -> list[int]:
+            return list(line) + [0] * (max_runs_in_clue - len(line))
+
+        def mask(line: list[int]) -> list[float]:
+            return [0.0] * len(line) + [-torch.inf] * (max_runs_in_clue - len(line))
+
+        padded_clues = [[[pad(line) for line in group] for group in puzzle] for puzzle in clues]
+        padding_mask = [[[mask(line) for line in group] for group in puzzle] for puzzle in clues]
+
+        return (
+            torch.tensor(padded_clues, dtype=torch.float32).flatten(start_dim=1),
+            torch.tensor(padding_mask, dtype=torch.float32).flatten(start_dim=1),
+        )
+
+    def _pad_sequence(self, clues: list[t.Clues], max_dimension: int) -> tuple[torch.Tensor, torch.Tensor]:
+        max_padding = 2 * max_dimension * ((max_dimension + 1) // 2)
+        padded_seqs, masks = [], []
+        for puzzle in clues:
+            flat_seq = [
+                [val, row_or_col, row_or_col_idx, run_idx]
+                for row_or_col, groups in enumerate(puzzle)
+                for row_or_col_idx, line in enumerate(groups)
+                for run_idx, val in enumerate(line)
+            ]
+            pad_len = max_padding - len(flat_seq)
+
+            padded_seqs.append(flat_seq + [[0, 0, 0, 0]] * pad_len)
+            masks.append([0.0] * len(flat_seq) + [-torch.inf] * pad_len)
+        return (
+            torch.tensor(padded_seqs, dtype=torch.float32).flatten(start_dim=1),
+            torch.tensor(masks, dtype=torch.float32).flatten(start_dim=1),
+        )
 
     # ------------------------------------------------------------------ #
     #  Utilities
@@ -305,7 +255,10 @@ class NonogramDataset:
         if isinstance(grid, torch.Tensor):
             tensor = grid if grid.dim() == 2 else grid.squeeze()
         elif isinstance(grid, np.ndarray):
-            tensor = torch.from_numpy(grid).squeeze()
+            if grid.dtype == object:
+                tensor = torch.stack([torch.from_numpy(row.copy()) for row in grid])
+            else:
+                tensor = torch.from_numpy(grid.copy()).squeeze()
         elif isinstance(grid, list):
             tensor = torch.tensor(grid)
         else:
@@ -326,48 +279,26 @@ class NonogramDataset:
             "mean_clue_runs": mean_clue_runs
         }
 
+    def _materialize(self, parsed: t.ReformattedData | Iterator[t.ReformattedData]) -> t.ReformattedData:
+        if isinstance(parsed, tuple):
+            return parsed
+
+        all_clues: list[t.Clues] = []
+        all_grids: list[torch.Tensor] = []
+        all_meta: list[dict] = []
+
+        for clues_batch, grid_batch, meta_batch in parsed:
+            all_clues.extend(clues_batch)
+            all_grids.append(grid_batch)
+            all_meta.extend(meta_batch)
+
+        if not all_grids:
+            raise ValueError("No data parsed: input produced zero entries.")
+
+        return all_clues, torch.cat(all_grids, dim=0), all_meta
+
     def __len__(self) -> int:
         return len(self.X)
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor | None, torch.Tensor, dict]:
         return self.X[idx], self.y[idx], self.padding_mask[idx], self.meta[idx]
-
-    # ------------------------------------------------------------------ #
-    #  Padding and reshaping utilities
-    # ------------------------------------------------------------------ #
-
-    def _pad_positional(self, clues: list[t.Clues], max_dimension: int) -> tuple[torch.Tensor, torch.Tensor]:
-        max_runs_in_clue = (max_dimension + 1) // 2  # worst case: alternating 1s and 0s
-
-        def pad(line: list[int]) -> list[int]:
-            return line + [0] * (max_runs_in_clue - len(line))
-
-        def mask(line: list[int]) -> list[float]:
-            return [0.0] * len(line) + [-torch.inf] * (max_runs_in_clue - len(line))
-
-        padded_clues = [[[pad(line) for line in group] for group in puzzle] for puzzle in clues]
-        padding_mask = [[[mask(line) for line in group] for group in puzzle] for puzzle in clues]
-
-        return (
-            torch.tensor(padded_clues, dtype=torch.float32).flatten(start_dim=1),
-            torch.tensor(padding_mask, dtype=torch.float32).flatten(start_dim=1),
-        )
-
-    def _pad_sequence(self, clues: list[t.Clues], max_dimension: int) -> tuple[torch.Tensor, torch.Tensor]:
-        max_padding = 2 * max_dimension * ((max_dimension + 1) // 2)
-        padded_seqs, masks = [], []
-        for puzzle in clues:
-            flat_seq = [
-                [val, row_or_col, row_or_col_idx, run_idx]
-                for row_or_col, groups in enumerate(puzzle)
-                for row_or_col_idx, line in enumerate(groups)
-                for run_idx, val in enumerate(line)
-            ]
-            pad_len = max_padding - len(flat_seq)
-
-            padded_seqs.append(flat_seq + [[0, 0, 0, 0]] * pad_len)
-            masks.append([0.0] * len(flat_seq) + [-torch.inf] * pad_len)
-        return (
-            torch.tensor(padded_seqs, dtype=torch.float32).flatten(start_dim=1),
-            torch.tensor(masks, dtype=torch.float32).flatten(start_dim=1),
-        )
