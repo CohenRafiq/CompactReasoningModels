@@ -7,7 +7,6 @@ from compactreasoningmodels.data_generation.generate_dataset import (
     puzzles_to_arrays,
     save_dataset,
 )
-from compactreasoningmodels.data_generation.parquet_reader import ParquetReader
 
 __all__ = [
     "ClueGenerator",
@@ -15,5 +14,4 @@ __all__ = [
     "generate_dataset",
     "save_dataset",
     "puzzles_to_arrays",
-    "ParquetReader",
 ]

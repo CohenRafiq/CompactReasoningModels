@@ -1,13 +1,11 @@
 from compactreasoningmodels.experiments.heatmap_store import HeatmapStore
-from compactreasoningmodels.datasets.jsonl import JsonlDataset
+from compactreasoningmodels.datasets.nonogram_dataset import NonogramDataset
 from torch.utils.data import DataLoader
 from compactreasoningmodels.experiments.noisy_similarity import NoisySimilarityExperiment
 from compactreasoningmodels.solving_traces.similarity_measures import MSE, MAE, HuberLoss, MeanCosineSimilarity, PearsonCorrelation, SSIMSimilarity, WassersteinSimilarity
 
-dataset = JsonlDataset(
-    input_data="raw/nonogram_5x5_tiny.jsonl",
-    target_data=None,
-    target_shape=(5, 5)
+dataset = NonogramDataset(
+    data="data/raw/nonogram_5x5_tiny.jsonl",
 )
 dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
 print(f"Dataset size: {len(dataset)} samples")

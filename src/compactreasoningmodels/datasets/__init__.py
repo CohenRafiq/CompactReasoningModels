@@ -1,5 +1,3 @@
-from compactreasoningmodels.datasets.base import BaseDataset
-from compactreasoningmodels.datasets.parquet import ParquetPuzzleDataset
-from compactreasoningmodels.datasets.puzzle import PuzzleDataset
+from compactreasoningmodels.datasets.nonogram_dataset import NonogramDataset
 
-__all__ = ["BaseDataset", "PuzzleDataset", "ParquetPuzzleDataset"]
+__all__ = ["NonogramDataset"]

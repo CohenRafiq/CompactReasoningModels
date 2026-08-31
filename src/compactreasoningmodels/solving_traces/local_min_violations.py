@@ -10,12 +10,15 @@ from compactreasoningmodels.solving_traces.base import SolvingTrace
 # Greedily updates every cell based on what value
 # Would minimise loss (satisfy clues)
 
-class LocalMinViolations(SolvingTrace):
 
-    def __init__(self, clues: np.ndarray | torch.Tensor,
-                 grid_shape: tuple[int, int],
-                 initial_grid: np.ndarray | torch.Tensor | None = None,
-                 hit_rate: float = 0.5):
+class LocalMinViolations(SolvingTrace):
+    def __init__(
+        self,
+        clues: np.ndarray | torch.Tensor,
+        grid_shape: tuple[int, int],
+        initial_grid: np.ndarray | torch.Tensor | None = None,
+        hit_rate: float = 0.5,
+    ):
         super().__init__(clues, grid_shape, initial_grid)
         self.loss_fn = NonogramLoss(reduction="mean")
         self.tensor_clues = torch.tensor(self.clues.flatten(), dtype=torch.float32).unsqueeze(0)
@@ -52,9 +55,15 @@ class LocalMinViolations(SolvingTrace):
 
         return low, high
 
-    def refine_with_golden_section(self, logit_grid: torch.Tensor, flat_idx: int,
-                                    low: float, high: float,
-                                    tol: float = 1e-4, max_iter: int = 50) -> torch.Tensor:
+    def refine_with_golden_section(
+        self,
+        logit_grid: torch.Tensor,
+        flat_idx: int,
+        low: float,
+        high: float,
+        tol: float = 1e-4,
+        max_iter: int = 50,
+    ) -> torch.Tensor:
         gr = (math.sqrt(5) + 1) / 2
         grid_tensor_base = logit_grid.flatten()
         original = grid_tensor_base[flat_idx].item()
@@ -84,7 +93,7 @@ class LocalMinViolations(SolvingTrace):
         with torch.no_grad():
             logit_grid = torch.logit(torch.tensor(grid, dtype=torch.float32), eps=1e-6)
             flat_logits = logit_grid.flatten()
-            snapshot = flat_logits.clone()          # frozen reference for this whole pass
+            snapshot = flat_logits.clone()  # frozen reference for this whole pass
             new_logits = flat_logits.clone()
 
             for r in range(self.rows):
@@ -98,19 +107,12 @@ class LocalMinViolations(SolvingTrace):
 
 
 if __name__ == "__main__":
-    clues = np.array([[
-        [0, 0, 0],
-        [3, 0, 0],
-        [1, 1, 0],
-        [3, 0, 0],
-        [0, 0, 0]
-    ],[
-        [0, 0, 0],
-        [3, 0, 0],
-        [1, 1, 0],
-        [3, 0, 0],
-        [0, 0, 0]
-    ]])
+    clues = np.array(
+        [
+            [[0, 0, 0], [3, 0, 0], [1, 1, 0], [3, 0, 0], [0, 0, 0]],
+            [[0, 0, 0], [3, 0, 0], [1, 1, 0], [3, 0, 0], [0, 0, 0]],
+        ]
+    )
     solver = LocalMinViolations(clues, (5, 5))
     grid = np.full((5, 5), 0.5)
     for _ in range(5):

@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import torch
 
-from compactreasoningmodels.datasets.jsonl import JsonlDataset
+from compactreasoningmodels.datasets.nonogram_dataset import NonogramDataset
 from compactreasoningmodels.solving_traces.arc_consistency import ArcConsistency
 from compactreasoningmodels.solving_traces.base import SolvingTrace
 from compactreasoningmodels.solving_traces.discrete_genetic import DiscreteGeneticAlgorithm
@@ -57,8 +57,7 @@ SOLVER_FACTORIES = {
 }
 
 
-def _make_solver(name: str, clues, shape: tuple[int, int], seed: int = 0,
-                 initial_grid=None):
+def _make_solver(name: str, clues, shape: tuple[int, int], seed: int = 0, initial_grid=None):
     np.random.seed(seed)
     random.seed(seed)
     solver: SolvingTrace = SOLVER_FACTORIES[name](clues, shape, initial_grid)
@@ -71,14 +70,14 @@ def _initial_grid(seed: int = 42) -> np.ndarray:
 
 
 @pytest.fixture(scope="module")
-def dataset() -> JsonlDataset:
-    return JsonlDataset(TINY_JSONL, target_shape=(GRID_SIZE, GRID_SIZE))
+def dataset() -> NonogramDataset:
+    return NonogramDataset(TINY_JSONL)
 
 
 @pytest.fixture(scope="module")
-def clues_for(dataset: JsonlDataset):
+def clues_for(dataset: NonogramDataset):
     def _clues(idx: int) -> np.ndarray:
-        x, _ = dataset[idx]
+        x, _, _, _ = dataset[idx]
         return x.numpy().reshape(2, GRID_SIZE, MAX_CLUE_LEN)
 
     return _clues
@@ -93,11 +92,11 @@ def fast_heatmaps(clues_for) -> dict[str, np.ndarray]:
     }
 
 
-def test_fixture_dataset_loads(dataset: JsonlDataset):
+def test_fixture_dataset_loads(dataset: NonogramDataset):
     assert len(dataset) == N_RECORDS
-    x, y = dataset[0]
+    x, y, _, _ = dataset[0]
     assert x.shape == (2 * GRID_SIZE * MAX_CLUE_LEN,)
-    assert y.shape == (GRID_SIZE, GRID_SIZE)
+    assert y.shape == (GRID_SIZE * GRID_SIZE,)
     assert set(np.unique(y.numpy())).issubset({0.0, 1.0})
 
 
@@ -143,7 +142,7 @@ def test_blank_grid_matches_grid_shape():
 
 @pytest.mark.parametrize("name", SOLVER_FACTORIES)
 def test_flat_dataloader_tensor_matches_stacked(name, dataset, clues_for):
-    flat_x, _ = dataset[0]  # torch tensor of shape (H*K_row + W*K_col,)
+    flat_x, _, _, _ = dataset[0]  # torch tensor of shape (H*K_row + W*K_col,)
     start = _initial_grid()
 
     from_flat = _make_solver(name, flat_x, (GRID_SIZE, GRID_SIZE))
@@ -162,7 +161,7 @@ def test_flat_dataloader_tensor_matches_stacked(name, dataset, clues_for):
 
 @pytest.mark.parametrize("name", SOLVER_FACTORIES)
 def test_batched_flat_tensor_accepted(name, dataset, clues_for):
-    batched_x, _ = dataset[0]
+    batched_x, _, _, _ = dataset[0]
     _ = _initial_grid()
 
     from_batched = _make_solver(name, batched_x.unsqueeze(0), (GRID_SIZE, GRID_SIZE))
@@ -174,23 +173,24 @@ def test_batched_flat_tensor_accepted(name, dataset, clues_for):
 
 @pytest.mark.parametrize("name", SOLVER_FACTORIES)
 def test_rejects_multi_sample_batch(name, dataset):
-    x, _ = dataset[0]
+    x, _, _, _ = dataset[0]
     with pytest.raises(ValueError, match="shape"):
         _make_solver(name, torch.stack([x, x]), (GRID_SIZE, GRID_SIZE))
 
 
 def test_tensor_initial_grid_converted_to_numpy(dataset):
-    x, y = dataset[0]
-    solver = ArcConsistency(x, (GRID_SIZE, GRID_SIZE), initial_grid=y)
+    x, y, _, _ = dataset[0]
+    y_grid = y.reshape(GRID_SIZE, GRID_SIZE)
+    solver = ArcConsistency(x, (GRID_SIZE, GRID_SIZE), initial_grid=y_grid)
 
     assert isinstance(solver.initial_grid, np.ndarray)
     assert solver.initial_grid.shape == (GRID_SIZE, GRID_SIZE)
-    np.testing.assert_allclose(solver.initial_grid, y.numpy())
+    np.testing.assert_allclose(solver.initial_grid, y_grid.numpy())
     np.testing.assert_array_equal(solver.traces[0], solver.initial_grid)
 
 
 def test_flat_clue_length_mismatch_raises(dataset):
-    x, _ = dataset[0]
+    x, _, _, _ = dataset[0]
     with pytest.raises(ValueError, match="flattened clue values"):
         ArcConsistency(x[:-1], (GRID_SIZE, GRID_SIZE))
 
@@ -224,9 +224,7 @@ def test_cross_solver_similarity_matrix(metric_name, fast_heatmaps):
     assert np.isfinite(pairwise)
 
 
-@pytest.mark.parametrize(
-    "solver_name", ["arc_consistency", "global_min_violations"]
-)
+@pytest.mark.parametrize("solver_name", ["arc_consistency", "global_min_violations"])
 @pytest.mark.parametrize("metric_name", list(METRICS))
 def test_noisy_trace_farther_scores_lower(solver_name, metric_name, fast_heatmaps):
     base = fast_heatmaps[solver_name]

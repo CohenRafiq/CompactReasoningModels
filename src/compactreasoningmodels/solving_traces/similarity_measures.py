@@ -18,20 +18,15 @@ class SimilarityMeasure(ABC):
         g2 = np.asarray(grid2)
 
         if g1.shape != g2.shape:
-            raise ValueError(
-                f"Grid shapes must match. Got {g1.shape} and {g2.shape}"
-            )
+            raise ValueError(f"Grid shapes must match. Got {g1.shape} and {g2.shape}")
 
         if g1.ndim < 2:
-            raise ValueError(
-                f"Grids must be at least 2D. Got shape {g1.shape}"
-            )
+            raise ValueError(f"Grids must be at least 2D. Got shape {g1.shape}")
 
         return self.compute_similarity(g1, g2)
 
     @abstractmethod
-    def compute_similarity(self, grid1: np.ndarray, grid2: np.ndarray) -> float | np.ndarray:
-        ...
+    def compute_similarity(self, grid1: np.ndarray, grid2: np.ndarray) -> float | np.ndarray: ...
 
 
 class MSE(SimilarityMeasure):
@@ -44,8 +39,8 @@ class MSE(SimilarityMeasure):
 
     def compute_similarity(self, grid1: np.ndarray, grid2: np.ndarray) -> float | np.ndarray:
         diff = grid1.astype(np.float64) - grid2.astype(np.float64)
-        mse = np.mean(diff ** 2, axis=(-2, -1))
-        return 1.0 - np.clip(mse / self.data_range ** 2, 0.0, 1.0)
+        mse = np.mean(diff**2, axis=(-2, -1))
+        return 1.0 - np.clip(mse / self.data_range**2, 0.0, 1.0)
 
 
 class MAE(SimilarityMeasure):
@@ -79,7 +74,7 @@ class HuberLoss(SimilarityMeasure):
 
     def compute_similarity(self, grid1: np.ndarray, grid2: np.ndarray) -> float | np.ndarray:
         diff = np.abs(grid1.astype(np.float64) - grid2.astype(np.float64))
-        quadratic = 0.5 * diff ** 2
+        quadratic = 0.5 * diff**2
         linear = self.delta * (diff - 0.5 * self.delta)
         loss = np.where(diff <= self.delta, quadratic, linear)
         mean_loss = np.mean(loss, axis=(-2, -1))
@@ -173,6 +168,7 @@ class PearsonCorrelation(SimilarityMeasure):
 
         return result if was_batched else float(result[0])
 
+
 class SSIMSimilarity(SimilarityMeasure):
     """Structural Similarity Index Measure mapped from [-1, 1] to [0, 1]."""
 
@@ -195,11 +191,7 @@ class SSIMSimilarity(SimilarityMeasure):
 
         for i in range(B):
             sim = ssim(
-                grid1[i],
-                grid2[i],
-                data_range=self.data_range,
-                win_size=win_size,
-                full=False
+                grid1[i], grid2[i], data_range=self.data_range, win_size=win_size, full=False
             )
             similarities.append(sim)
 
@@ -225,20 +217,16 @@ class WassersteinSimilarity(SimilarityMeasure):
         distances: list[float] = []
 
         for i in range(B):
-            dist = wasserstein_distance(
-                grid1[i].flatten(),
-                grid2[i].flatten()
-            )
+            dist = wasserstein_distance(grid1[i].flatten(), grid2[i].flatten())
             distances.append(dist)
 
         result = 1.0 - np.clip(np.asarray(distances) / self.data_range, 0.0, 1.0)
 
         return result if was_batched else float(result[0])
 
+
 def compare_batches(
-    grids_a: np.ndarray,
-    grids_b: np.ndarray,
-    measure: SimilarityMeasure
+    grids_a: np.ndarray, grids_b: np.ndarray, measure: SimilarityMeasure
 ) -> np.ndarray:
     a = np.asarray(grids_a)
     b = np.asarray(grids_b)
@@ -250,7 +238,7 @@ def compare_batches(
 
     N, M = a.shape[0], b.shape[0]
     a_exp = np.repeat(a[:, np.newaxis, ...], M, axis=1)  # (N, M, H, W)
-    b_exp = np.repeat(b[np.newaxis, ...], N, axis=0)     # (N, M, H, W)
+    b_exp = np.repeat(b[np.newaxis, ...], N, axis=0)  # (N, M, H, W)
 
     a_flat = a_exp.reshape(N * M, *a.shape[1:])
     b_flat = b_exp.reshape(N * M, *b.shape[1:])
