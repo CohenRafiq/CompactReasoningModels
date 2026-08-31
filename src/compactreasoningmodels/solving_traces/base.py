@@ -5,15 +5,18 @@ import torch
 
 
 class SolvingTrace(ABC):
-
-    def __init__(self, clues: np.ndarray | torch.Tensor,
-                 grid_shape: tuple[int, int],
-                 initial_grid: np.ndarray | torch.Tensor | None = None):
+    def __init__(
+        self,
+        clues: np.ndarray | torch.Tensor,
+        grid_shape: tuple[int, int],
+        initial_grid: np.ndarray | torch.Tensor | None = None,
+    ):
         super().__init__()
         self.clues = self._normalize_clues(clues, grid_shape)
         self.grid_size = grid_shape
         self.initial_grid = (
-            self._as_numpy(initial_grid) if initial_grid is not None
+            self._as_numpy(initial_grid)
+            if initial_grid is not None
             else self._blank_grid(*grid_shape)
         )
         self.traces = [self.initial_grid]
@@ -29,8 +32,9 @@ class SolvingTrace(ABC):
         return np.asarray(data)
 
     @staticmethod
-    def _normalize_clues(clues: np.ndarray | torch.Tensor,
-                         grid_shape: tuple[int, int]) -> np.ndarray:
+    def _normalize_clues(
+        clues: np.ndarray | torch.Tensor, grid_shape: tuple[int, int]
+    ) -> np.ndarray:
         arr = SolvingTrace._as_numpy(clues)
         rows, cols = grid_shape
         k_row = (cols + 1) // 2
@@ -53,7 +57,7 @@ class SolvingTrace(ABC):
                     "row/column clues as a (2, ...) array instead"
                 )
             row_clues = arr[: rows * k_row].reshape(rows, k_row)
-            col_clues = arr[rows * k_row:].reshape(cols, k_col)
+            col_clues = arr[rows * k_row :].reshape(cols, k_col)
             return np.stack([row_clues, col_clues])
 
         if arr.ndim == 3 and arr.shape[0] == 2:
@@ -116,5 +120,4 @@ class SolvingTrace(ABC):
         return grids[-1]
 
     @abstractmethod
-    def heatmap_step(self, grid: np.ndarray) -> np.ndarray:
-        ...
+    def heatmap_step(self, grid: np.ndarray) -> np.ndarray: ...

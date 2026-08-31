@@ -1,5 +1,5 @@
 from compactreasoningmodels import datasets, loggers, losses, models, trainers, utils
-from compactreasoningmodels.datasets import BaseDataset, ParquetPuzzleDataset, PuzzleDataset
+from compactreasoningmodels.datasets import NonogramDataset
 from compactreasoningmodels.loggers import BaseLogger, NullLogger, WandbLogger
 from compactreasoningmodels.losses import AbstainLoss, BaseCriterion, NonogramLoss
 from compactreasoningmodels.models import (
@@ -22,9 +22,7 @@ __all__ = [
     "models",
     "trainers",
     "utils",
-    "BaseDataset",
-    "PuzzleDataset",
-    "ParquetPuzzleDataset",
+    "NonogramDataset",
     "BaseCriterion",
     "NonogramLoss",
     "AbstainLoss",

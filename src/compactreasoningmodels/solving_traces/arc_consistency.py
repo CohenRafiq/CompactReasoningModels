@@ -105,8 +105,9 @@ class ArcConsistency(SolvingTrace):
                 flat.append(int(item))
         return tuple(b for b in flat if b > 0)
 
-    def _loop_directions(self, grid: np.ndarray, direction_clues,
-                         known_grid: np.ndarray) -> np.ndarray | None:
+    def _loop_directions(
+        self, grid: np.ndarray, direction_clues, known_grid: np.ndarray
+    ) -> np.ndarray | None:
         output_grid = np.empty_like(grid, dtype=np.float64)
         for i in range(grid.shape[0]):
             blocks = self._to_blocks(direction_clues[i])
@@ -133,19 +134,12 @@ class ArcConsistency(SolvingTrace):
 
 
 if __name__ == "__main__":
-    clues = np.array([[
-        [0, 0, 0],
-        [3, 0, 0],
-        [1, 1, 0],
-        [3, 0, 0],
-        [0, 0, 0]
-    ],[
-        [0, 0, 0],
-        [3, 0, 0],
-        [1, 1, 0],
-        [3, 0, 0],
-        [0, 0, 0]
-    ]])
+    clues = np.array(
+        [
+            [[0, 0, 0], [3, 0, 0], [1, 1, 0], [3, 0, 0], [0, 0, 0]],
+            [[0, 0, 0], [3, 0, 0], [1, 1, 0], [3, 0, 0], [0, 0, 0]],
+        ]
+    )
     solver = ArcConsistency(clues, (5, 5))
     grid = np.full((5, 5), 0.5)
     for _ in range(5):

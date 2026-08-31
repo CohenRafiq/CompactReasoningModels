@@ -1,7 +1,10 @@
+from typing import cast
+
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
+from compactreasoningmodels.datasets.nonogram_dataset import NonogramDataset
 from compactreasoningmodels.losses.nonogram import NonogramLoss
 from compactreasoningmodels.solving_traces.arc_consistency import ArcConsistency
 from compactreasoningmodels.solving_traces.discrete_genetic import DiscreteGeneticAlgorithm
@@ -17,15 +20,16 @@ class HeatmapStore:
         "local_min_violations": LocalMinViolations,
         "global_min_violations": GlobalMinViolations,
         "discrete_genetic": DiscreteGeneticAlgorithm,
-        "model_solver": ModelSolver
+        "model_solver": ModelSolver,
     }
 
     def __init__(self, dataloader: DataLoader, initial_grid_type: str = "random"):
         self.dataloader = dataloader
-        self.heatmaps = {}
+        self.heatmaps: dict[SolverProfile, list[tuple[np.ndarray, torch.Tensor, np.ndarray]]] = {}
+        dataset = cast(NonogramDataset, self.dataloader.dataset)
         self.initial_grid = HeatmapStore._gen_inital_grid(
-            initial_grid_type,
-            self.dataloader.dataset.target_shape)
+            initial_grid_type, cast(tuple[int, int], dataset.target_shape)
+        )
 
     @staticmethod
     def _gen_inital_grid(gen_type: str, shape: tuple[int, int]) -> np.ndarray:
@@ -37,23 +41,23 @@ class HeatmapStore:
             case _:
                 raise ValueError(f"Unknown initial grid type: {gen_type}")
 
-    def add_heatmaps(self, solver_profiles: list[SolverProfile] | list[tuple[str, int]]
-                     ) -> dict[SolverProfile, list[tuple[np.ndarray, np.ndarray]]]:
+    def add_heatmaps(
+        self, solver_profiles: list[SolverProfile] | list[tuple[str, int]]
+    ) -> dict[SolverProfile, list[tuple[np.ndarray, torch.Tensor, np.ndarray]]]:
         solver_profiles = [
-            p if isinstance(p, SolverProfile) else SolverProfile(*p)
-            for p in solver_profiles
+            p if isinstance(p, SolverProfile) else SolverProfile(*p) for p in solver_profiles
         ]
-        target_shape = self.dataloader.dataset.target_shape
+        target_shape = cast(NonogramDataset, self.dataloader.dataset).target_shape
         for solver_profile in solver_profiles:
             if solver_profile in self.heatmaps:
                 continue  # Skip if heatmap already exists
             results = []
 
-            for input_tensor, target_grid in self.dataloader:
+            for input_tensor, target_grid, _, _ in self.dataloader:
                 solver_class = self._solvers[solver_profile.name]
                 solver_instance = solver_class(
-                    input_tensor, target_shape,
-                    initial_grid=self.initial_grid)
+                    input_tensor, target_shape, initial_grid=self.initial_grid
+                )
                 heatmap = solver_instance.heatmap(num_steps=solver_profile.num_steps)
                 results.append((heatmap, input_tensor, target_grid.squeeze(0).numpy()))
 
@@ -79,34 +83,40 @@ class HeatmapStore:
                     bar_length = int((hist[i] / max_count) * width)
                     bar = "█" * bar_length
                     percentage = (hist[i] / len(values)) * 100
-                    print(f"{bin_edges[i]:.2f}-{bin_edges[i+1]:.2f}: {bar} {percentage:.1f}%")
+                    print(f"{bin_edges[i]:.2f}-{bin_edges[i + 1]:.2f}: {bar} {percentage:.1f}%")
                 else:
-                    print(f"{bin_edges[i]:.2f}-{bin_edges[i+1]:.2f}:")
+                    print(f"{bin_edges[i]:.2f}-{bin_edges[i + 1]:.2f}:")
 
             print("-" * 70)
 
     def display_accuracy(self) -> None:
         for (solver_name, num_steps), results in self.heatmaps.items():
             correct_count = sum(
-                1 for heatmap, _, target in results
-                if np.allclose(heatmap, target, atol=1e-2)
+                1 for heatmap, _, target in results if np.allclose(heatmap, target, atol=1e-2)
             )
             accuracy = correct_count / len(results) * 100
             print(f"{solver_name} (steps={num_steps}): Accuracy = {accuracy:.2f}%")
 
     def display_mse_loss(self) -> None:
         for (solver_name, num_steps), results in self.heatmaps.items():
-            heatmap_tensors = torch.tensor(np.array([hm for hm, _, _ in results]), dtype=torch.float32).flatten(start_dim=1)
-            target_tensors = torch.tensor(np.array([target for _, _, target in results]), dtype=torch.float32).flatten(start_dim=1)
+            heatmap_tensors = torch.tensor(
+                np.array([hm for hm, _, _ in results]), dtype=torch.float32
+            ).flatten(start_dim=1)
+            target_tensors = torch.tensor(
+                np.array([target for _, _, target in results]), dtype=torch.float32
+            ).flatten(start_dim=1)
             total_loss = torch.nn.functional.mse_loss(heatmap_tensors, target_tensors)
             average_loss = total_loss / len(results)
             print(f"{solver_name} (steps={num_steps}): Average Loss = {average_loss:.4f}")
 
     def display_clue_loss(self) -> None:
         for (solver_name, num_steps), results in self.heatmaps.items():
-            heatmap_tensors = torch.tensor(np.array([hm for hm, _, _ in results]), dtype=torch.float32).flatten(start_dim=1)
-            clue_tensors = torch.tensor(np.array([clue for _, clue, _ in results]), dtype=torch.float32).flatten(start_dim=1)
+            heatmap_tensors = torch.tensor(
+                np.array([hm for hm, _, _ in results]), dtype=torch.float32
+            ).flatten(start_dim=1)
+            clue_tensors = torch.tensor(
+                np.array([clue for _, clue, _ in results]), dtype=torch.float32
+            ).flatten(start_dim=1)
             total_loss = NonogramLoss()(heatmap_tensors, clue_tensors)[0]
             average_loss = total_loss / len(results)
             print(f"{solver_name} (steps={num_steps}): Average Loss = {average_loss:.4f}")
-

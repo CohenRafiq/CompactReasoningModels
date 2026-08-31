@@ -303,16 +303,46 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Generate nonogram puzzle datasets.")
-    parser.add_argument("-n", "--num-samples", type=int, default=1_000, help="Number of puzzles to generate (default: 1000)")
-    parser.add_argument("-b", "--batch-size", type=int, default=100, help="Batch size for flushing to parquet (default: 100)")
+    parser.add_argument(
+        "-n",
+        "--num-samples",
+        type=int,
+        default=1_000,
+        help="Number of puzzles to generate (default: 1000)",
+    )
+    parser.add_argument(
+        "-b",
+        "--batch-size",
+        type=int,
+        default=100,
+        help="Batch size for flushing to parquet (default: 100)",
+    )
     parser.add_argument("-W", "--width", type=int, default=5, help="Grid width (default: 5)")
     parser.add_argument("-H", "--height", type=int, default=5, help="Grid height (default: 5)")
-    parser.add_argument("-d", "--density", type=float, default=0.5, help="Cell fill probability (default: 0.5)")
-    parser.add_argument("-o", "--output", type=str, default="data/raw/nng_test.parquet", help="Output parquet path (default: data/raw/nng_test.parquet)")
-    parser.add_argument("-w", "--workers", type=int, default=None, help="Number of workers (default: cpu count)")
-    parser.add_argument("-c", "--chunksize", type=int, default=100, help="Multiprocessing chunk size (default: 100)")
+    parser.add_argument(
+        "-d", "--density", type=float, default=0.5, help="Cell fill probability (default: 0.5)"
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        default="data/raw/nng_test.parquet",
+        help="Output parquet path (default: data/raw/nng_test.parquet)",
+    )
+    parser.add_argument(
+        "-w", "--workers", type=int, default=None, help="Number of workers (default: cpu count)"
+    )
+    parser.add_argument(
+        "-c", "--chunksize", type=int, default=100, help="Multiprocessing chunk size (default: 100)"
+    )
     parser.add_argument("-s", "--seed", type=int, default=42, help="Random seed (default: 42)")
-    parser.add_argument("-m", "--max-attempts", type=int, default=10_000, help="Max attempts per puzzle (default: 10000)")
+    parser.add_argument(
+        "-m",
+        "--max-attempts",
+        type=int,
+        default=10_000,
+        help="Max attempts per puzzle (default: 10000)",
+    )
     args = parser.parse_args()
 
     main(

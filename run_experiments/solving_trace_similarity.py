@@ -9,7 +9,7 @@ from compactreasoningmodels.solving_traces.local_min_violations import LocalMinV
 from compactreasoningmodels.solving_traces.arc_consistency import ArcConsistency
 from compactreasoningmodels.solving_traces.model_solver import ModelSolver
 from compactreasoningmodels.solving_traces.similarity_measures import MSE, PearsonCorrelation, SSIMSimilarity
-from compactreasoningmodels.datasets.jsonl import JsonlDataset
+from compactreasoningmodels.datasets.nonogram_dataset import NonogramDataset
 
 SOLVERS = {
     "arc_consistency": ArcConsistency, 
@@ -55,12 +55,12 @@ def add_noise_to_grid(grid: np.ndarray, noise_level: float = 0.1) -> np.ndarray:
     return noisy_grid
 
 def main(number_samples=100, print_every=None, noise_level=0.1):
-    dataset = JsonlDataset("raw/nonogram_5x5_small.jsonl", target_shape=(5, 5))
+    dataset = NonogramDataset("data/raw/nonogram_5x5_small.jsonl")
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False)
 
     heatmaps = {name: [] for name in SOLVERS.keys()}
     
-    for i, (input_tensor, target_tensor) in enumerate(dataloader):
+    for i, (input_tensor, target_tensor, _, _) in enumerate(dataloader):
         if i >= number_samples:
             break
         target = target_tensor.squeeze(0).numpy()

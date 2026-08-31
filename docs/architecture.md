@@ -22,12 +22,10 @@ compactreasoningmodels/
 ├── data_generation/
 │   ├── clue_generator.py          # random puzzle grid + run-length clue synthesis
 │   ├── constraint_propagator.py   # forward/backward DP for row/col probabilities
-│   ├── generate_dataset.py        # multiprocess puzzle generation → parquet writer
-│   └── parquet_reader.py          # parquet → in-memory tensors + dataloaders
+│   └── generate_dataset.py        # multiprocess puzzle generation → parquet writer
 ├── datasets/
-│   ├── base.py                    # BaseDataset (Dataset ABC + shared loaders)
-│   ├── puzzle.py                  # PuzzleDataset (tensors/paths)
-│   └── parquet.py                 # ParquetPuzzleDataset (parquet + metadata)
+│   ├── nonogram_dataset.py        # NonogramDataset (Dataset; parses jsonl/parquet/npy/grids)
+│   └── nonogram_parser.py         # NonogramParser (shared parsing helpers)
 ├── losses/
 │   ├── base.py                    # BaseCriterion
 │   ├── nonogram.py                # differentiable run-length (clue) loss
@@ -68,9 +66,11 @@ configs (`n5_mlp_s.yaml`, `n5_mlp_r.yaml`, `n5_mlp_abstain.yaml`) live at the
 `configs/` root so defaults resolve relative to the config file location.
 
 ### Abstract base classes
-`BaseDataset`, `BaseModel`, `BaseCriterion`, `BaseTrainer`, and `BaseLogger`
-define the interfaces. Concrete implementations only fill in the abstract
-methods, so new architectures or losses plug in with a config change.
+`BaseModel`, `BaseCriterion`, `BaseTrainer`, and `BaseLogger` define the
+interfaces. Concrete implementations only fill in the abstract methods, so
+new architectures or losses plug in with a config change. `NonogramDataset`
+extends `torch.utils.data.Dataset` and exposes `input_shape`, `target_shape`
+and `flatten()` for compatibility with the training pipeline.
 
 ### Abstain loss
 `AbstainLoss` outputs one logit per cell per class plus a final abstain

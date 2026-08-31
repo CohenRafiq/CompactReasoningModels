@@ -1,5 +1,4 @@
 # @package _global_
 data:
-  _target_: compactreasoningmodels.datasets.parquet.ParquetPuzzleDataset
-  parquet_path: "raw/nng_10x10.parquet"
-  target_shape: [10, 10]
+  _target_: compactreasoningmodels.datasets.nonogram_dataset.NonogramDataset
+  data: "data/raw/nng_10x10.parquet"

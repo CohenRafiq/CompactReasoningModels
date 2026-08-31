@@ -1,5 +1,5 @@
 defaults:
-  - data: nng5x5
+  - data: nng5x5_parquet
   - model: mlp
   - optimizer: adam
   - criterion: nonogram

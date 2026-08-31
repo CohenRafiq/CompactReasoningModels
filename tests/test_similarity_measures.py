@@ -63,9 +63,7 @@ def test_scores_stay_within_unit_range(name):
     for g1, g2 in pairs:
         single = float(ALL_MEASURES[name](g1, g2))
         assert 0.0 <= single <= 1.0
-        batched = ALL_MEASURES[name](
-            np.stack([g1, g2]), np.stack([g2, g1])
-        )
+        batched = ALL_MEASURES[name](np.stack([g1, g2]), np.stack([g2, g1]))
         assert ((batched >= 0.0) & (batched <= 1.0)).all()
 
 

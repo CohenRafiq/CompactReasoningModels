@@ -1,4 +1,3 @@
-
 import numpy as np
 import torch
 
@@ -9,11 +8,13 @@ from compactreasoningmodels.utils.load_model import load_model
 
 
 class ModelSolver(SolvingTrace):
-
-    def __init__(self, clues: np.ndarray | torch.Tensor,
-                 grid_shape: tuple[int, int],
-                 model: BaseModel | None = None,
-                 initial_grid: np.ndarray | torch.Tensor | None = None):
+    def __init__(
+        self,
+        clues: np.ndarray | torch.Tensor,
+        grid_shape: tuple[int, int],
+        model: BaseModel | None = None,
+        initial_grid: np.ndarray | torch.Tensor | None = None,
+    ):
         super().__init__(clues, grid_shape, initial_grid)
         if model is None:
             model = load_model(
@@ -24,17 +25,14 @@ class ModelSolver(SolvingTrace):
                 output_size=75,
                 hidden_size=256,
                 num_layers=9,
-                dropout=0.3
+                dropout=0.3,
             )
         self.model = model
         self.model.eval()
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.tensor_clues = (
-            torch.from_numpy(np.ascontiguousarray(self.clues))
-            .flatten()
-            .unsqueeze(0)
-            .to(device)
-            )
+            torch.from_numpy(np.ascontiguousarray(self.clues)).flatten().unsqueeze(0).to(device)
+        )
 
     def compress_categorical_abstain(self, grid: torch.Tensor) -> np.ndarray:
         # Input (3, H, W) → Output (H, W)
@@ -42,42 +40,33 @@ class ModelSolver(SolvingTrace):
         compressed = smooth[1] + 0.5 * smooth[2]
         return compressed.cpu().detach().numpy()
 
-
-
     def heatmap_step(self, grid: np.ndarray) -> np.ndarray:
         with torch.no_grad():
-            logits = self.model(
-                self.tensor_clues, layer_num=1
-                ).cpu().detach()[0].reshape(3, 5, 5)
+            logits = self.model(self.tensor_clues, layer_num=1).cpu().detach()[0].reshape(3, 5, 5)
             if logits.ndim == 3 or logits.shape[0] == 3:
                 logits = self.compress_categorical_abstain(logits)
         return logits
 
     def heatmap(self, num_steps: int = 1) -> np.ndarray:
         with torch.no_grad():
-            logits = self.model(
-                self.tensor_clues, layer_num=num_steps
-                ).cpu().detach()[0].reshape(3, 5, 5)
+            logits = (
+                self.model(self.tensor_clues, layer_num=num_steps)
+                .cpu()
+                .detach()[0]
+                .reshape(3, 5, 5)
+            )
             if logits.ndim == 3 or logits.shape[0] == 3:
                 logits = self.compress_categorical_abstain(logits)
         return logits
 
 
-
 if __name__ == "__main__":
-    clues = np.array([[
-        [0, 0, 0],
-        [3, 0, 0],
-        [1, 1, 0],
-        [3, 0, 0],
-        [0, 0, 0]
-    ],[
-        [0, 0, 0],
-        [3, 0, 0],
-        [1, 1, 0],
-        [3, 0, 0],
-        [0, 0, 0]
-    ]])
+    clues = np.array(
+        [
+            [[0, 0, 0], [3, 0, 0], [1, 1, 0], [3, 0, 0], [0, 0, 0]],
+            [[0, 0, 0], [3, 0, 0], [1, 1, 0], [3, 0, 0], [0, 0, 0]],
+        ]
+    )
     solver = ModelSolver(clues, (5, 5))
     grid = np.full((5, 5), 0.5)
     for _ in range(5):

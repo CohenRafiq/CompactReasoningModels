@@ -8,7 +8,7 @@ import numpy as np
 import torch
 
 
-def get_line_clues(line: Iterable[int], K: int | None = None):
+def get_line_clues(line: Iterable[int] | torch.Tensor, K: int | None = None):
     """Derive run-length clues from a single binary line.
 
     Args:
@@ -20,9 +20,7 @@ def get_line_clues(line: Iterable[int], K: int | None = None):
         list[int] when *K* is None (empty list for lines with no filled cells),
         otherwise a K-padded array/tensor of run lengths.
     """
-    is_tensor = isinstance(line, torch.Tensor)
-
-    if is_tensor:
+    if isinstance(line, torch.Tensor):
         values = line.detach().cpu().tolist()
     else:
         values = list(line)
@@ -42,12 +40,18 @@ def get_line_clues(line: Iterable[int], K: int | None = None):
         return runs
 
     padded = runs[:K] + [0] * (K - len(runs))
-    if is_tensor:
+    if isinstance(line, torch.Tensor):
         return torch.tensor(padded, dtype=torch.float32)
     return np.array(padded, dtype=np.int32)
 
 
-def derive_clues_from_grid(grid, K: int | None = None) -> tuple[list[list[int]], list[list[int]]] | tuple[np.ndarray, np.ndarray] | tuple[torch.Tensor, torch.Tensor]:
+def derive_clues_from_grid(
+    grid, K: int | None = None
+) -> (
+    tuple[list[list[int]], list[list[int]]]
+    | tuple[np.ndarray, np.ndarray]
+    | tuple[torch.Tensor, torch.Tensor]
+):
     """Derive (row_clues, col_clues) from a 2-D binary grid.
 
     Args:

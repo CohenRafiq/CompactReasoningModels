@@ -5,7 +5,7 @@ import numpy as np
 
 from compactreasoningmodels.models.recursive_gridmlp import RecursiveGridMLP
 from compactreasoningmodels.utils.display import ascii_print_grid, display_grid, display_blended
-from compactreasoningmodels.datasets.jsonl import JsonlDataset
+from compactreasoningmodels.datasets.nonogram_dataset import NonogramDataset
 
 
 # Load Model
@@ -26,10 +26,8 @@ state_dict = torch.load(model_weight_path, map_location=device, weights_only=Tru
 model.load_state_dict(state_dict)
 
 # Load dataset
-dataset = JsonlDataset(
-    input_data="raw/nonogram_5x5_small.jsonl",
-    target_data=None,
-    target_shape=(5, 5)
+dataset = NonogramDataset(
+    data="data/raw/nonogram_5x5_small.jsonl",
 )
 
 # Number of examples to display

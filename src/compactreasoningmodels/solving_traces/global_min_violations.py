@@ -7,11 +7,14 @@ from compactreasoningmodels.solving_traces.base import SolvingTrace
 # Updates the entire grid using gradient descent
 # to minimize the loss (satisfy clues)
 
-class GlobalMinViolations(SolvingTrace):
 
-    def __init__(self, clues: np.ndarray | torch.Tensor,
-                 grid_shape: tuple[int, int],
-                 initial_grid: np.ndarray | torch.Tensor | None = None):
+class GlobalMinViolations(SolvingTrace):
+    def __init__(
+        self,
+        clues: np.ndarray | torch.Tensor,
+        grid_shape: tuple[int, int],
+        initial_grid: np.ndarray | torch.Tensor | None = None,
+    ):
         super().__init__(clues, grid_shape, initial_grid)
         self.loss_fn = NonogramLoss(reduction="mean")
         self.tensor_clues = torch.tensor(self.clues.flatten(), dtype=torch.float32).unsqueeze(0)
@@ -47,20 +50,14 @@ class GlobalMinViolations(SolvingTrace):
 
         return new_grid
 
+
 if __name__ == "__main__":
-    clues = np.array([[
-        [0, 0, 0],
-        [3, 0, 0],
-        [1, 1, 0],
-        [3, 0, 0],
-        [0, 0, 0]
-    ],[
-        [0, 0, 0],
-        [3, 0, 0],
-        [1, 1, 0],
-        [3, 0, 0],
-        [0, 0, 0]
-    ]])
+    clues = np.array(
+        [
+            [[0, 0, 0], [3, 0, 0], [1, 1, 0], [3, 0, 0], [0, 0, 0]],
+            [[0, 0, 0], [3, 0, 0], [1, 1, 0], [3, 0, 0], [0, 0, 0]],
+        ]
+    )
     solver = GlobalMinViolations(clues, (5, 5))
     grid = np.full((5, 5), 0.5)
     for _ in range(5):

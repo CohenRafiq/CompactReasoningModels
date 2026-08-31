@@ -1,4 +1,5 @@
 import random
+from typing import cast
 
 import numpy as np
 
@@ -20,7 +21,7 @@ class ClueGenerator:
     def find_clues_from_grid(
         self, grid: list[list[int]]
     ) -> tuple[list[list[int]], list[list[int]]]:
-        return derive_clues_from_grid(grid)
+        return cast(tuple[list[list[int]], list[list[int]]], derive_clues_from_grid(grid))
 
     def gen_clues_and_grid(
         self, max_attempts: int = 100

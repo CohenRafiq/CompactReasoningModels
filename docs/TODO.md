@@ -14,7 +14,7 @@
 - [x] **GitHub Actions**: CI (lint/type-check/test on push/PR)
 
 ## Abstract Base Classes
-- [x] `BaseDataset`: data loading interface (`datasets/base.py`)
+- [x] `NonogramDataset`: data loading interface (`datasets/nonogram_dataset.py`)
 - [x] `BaseModel`: model architecture interface (`models/base.py`)
 - [x] `BaseTrainer`: training loop interface (`trainers/base.py`)
 - [x] `BaseCriterion`: loss interface (`losses/base.py`)
