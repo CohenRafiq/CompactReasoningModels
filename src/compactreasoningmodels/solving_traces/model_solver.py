@@ -48,16 +48,19 @@ class ModelSolver(SolvingTrace):
         return logits
 
     def heatmap(self, num_steps: int = 1) -> np.ndarray:
-        with torch.no_grad():
-            logits = (
-                self.model(self.tensor_clues, layer_num=num_steps)
-                .cpu()
-                .detach()[0]
-                .reshape(3, 5, 5)
-            )
-            if logits.ndim == 3 or logits.shape[0] == 3:
-                logits = self.compress_categorical_abstain(logits)
-        return logits
+        all_logits = []
+        for i in range(num_steps+1):
+            with torch.no_grad():
+                logits = (
+                    self.model(self.tensor_clues, layer_num=i)
+                    .cpu()
+                    .detach()[0]
+                    .reshape(3, 5, 5)
+                )
+                if logits.ndim == 3 or logits.shape[0] == 3:
+                    logits = self.compress_categorical_abstain(logits)
+            all_logits.append(logits)
+        return all_logits
 
 
 if __name__ == "__main__":

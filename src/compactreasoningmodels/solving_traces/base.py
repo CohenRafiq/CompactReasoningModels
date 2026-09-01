@@ -10,10 +10,12 @@ class SolvingTrace(ABC):
         clues: np.ndarray | torch.Tensor,
         grid_shape: tuple[int, int],
         initial_grid: np.ndarray | torch.Tensor | None = None,
+        hit_rate: float = 1.0,
     ):
         super().__init__()
         self.clues = self._normalize_clues(clues, grid_shape)
         self.grid_size = grid_shape
+        self.hit_rate = hit_rate
         self.initial_grid = (
             self._as_numpy(initial_grid)
             if initial_grid is not None
@@ -117,7 +119,7 @@ class SolvingTrace(ABC):
         for _ in range(num_steps):
             grid_step = self.heatmap_step(grids[-1])
             grids.append(grid_step)
-        return grids[-1]
+        return grids
 
     @abstractmethod
     def heatmap_step(self, grid: np.ndarray) -> np.ndarray: ...

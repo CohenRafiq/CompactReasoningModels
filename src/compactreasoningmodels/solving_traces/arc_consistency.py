@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 
 from compactreasoningmodels.solving_traces.base import SolvingTrace
@@ -5,8 +7,9 @@ from compactreasoningmodels.solving_traces.base import SolvingTrace
 
 class ArcConsistency(SolvingTrace):
     def _row_probabilities(
-        self, blocks: tuple[int, ...], length: int, known: tuple[int, ...] | None = None
-    ) -> np.ndarray | None:
+        self, blocks: tuple[int, ...], length: int, 
+        known: tuple[int, ...] | None = None
+        ) -> np.ndarray | None:
         known_arr = list(known) if known is not None else [-1] * length
         k = len(blocks)
 
@@ -108,14 +111,15 @@ class ArcConsistency(SolvingTrace):
     def _loop_directions(
         self, grid: np.ndarray, direction_clues, known_grid: np.ndarray
     ) -> np.ndarray | None:
-        output_grid = np.empty_like(grid, dtype=np.float64)
+        output_grid = grid.copy()
         for i in range(grid.shape[0]):
             blocks = self._to_blocks(direction_clues[i])
             known = tuple(int(x) for x in known_grid[i, :])
             probs = self._row_probabilities(blocks, length=grid.shape[1], known=known)
             if probs is None:
                 return None
-            output_grid[i, :] = probs
+            if random.random() <= self.hit_rate:
+                output_grid[i, :] = probs
         return output_grid
 
     def heatmap_step(self, grid: np.ndarray) -> np.ndarray:

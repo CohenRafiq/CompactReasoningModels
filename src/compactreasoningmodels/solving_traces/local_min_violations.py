@@ -19,7 +19,7 @@ class LocalMinViolations(SolvingTrace):
         initial_grid: np.ndarray | torch.Tensor | None = None,
         hit_rate: float = 0.5,
     ):
-        super().__init__(clues, grid_shape, initial_grid)
+        super().__init__(clues, grid_shape, initial_grid, hit_rate)
         self.loss_fn = NonogramLoss(reduction="mean")
         self.tensor_clues = torch.tensor(self.clues.flatten(), dtype=torch.float32).unsqueeze(0)
         self.rows, self.cols = grid_shape
