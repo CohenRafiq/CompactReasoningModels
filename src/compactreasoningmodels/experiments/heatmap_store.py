@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from compactreasoningmodels.datasets.nonogram_dataset import NonogramDataset
-from compactreasoningmodels.losses.nonogram import NonogramLoss
+from compactreasoningmodels.losses.clue_reconstruction import ClueReconstructionLoss
 from compactreasoningmodels.solving_traces.arc_consistency import ArcConsistency
 from compactreasoningmodels.solving_traces.discrete_genetic import DiscreteGeneticAlgorithm
 from compactreasoningmodels.solving_traces.global_min_violations import GlobalMinViolations
@@ -117,6 +117,6 @@ class HeatmapStore:
             clue_tensors = torch.tensor(
                 np.array([clue for _, clue, _ in results]), dtype=torch.float32
             ).flatten(start_dim=1)
-            total_loss = NonogramLoss()(heatmap_tensors, clue_tensors)[0]
+            total_loss = ClueReconstructionLoss()(heatmap_tensors, clue_tensors)[0]
             average_loss = total_loss / len(results)
             print(f"{solver_name} (steps={num_steps}): Average Loss = {average_loss:.4f}")

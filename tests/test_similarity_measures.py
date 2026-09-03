@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from compactreasoningmodels.solving_traces.similarity_measures import (
+from compactreasoningmodels.trace_similarity.similarity_measures import (
     MAE,
     MSE,
     HuberLoss,

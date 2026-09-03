@@ -8,7 +8,7 @@ from compactreasoningmodels.solving_traces.global_min_violations import GlobalMi
 from compactreasoningmodels.solving_traces.local_min_violations import LocalMinViolations
 from compactreasoningmodels.solving_traces.arc_consistency import ArcConsistency
 from compactreasoningmodels.solving_traces.model_solver import ModelSolver
-from compactreasoningmodels.solving_traces.similarity_measures import MSE, PearsonCorrelation, SSIMSimilarity
+from compactreasoningmodels.trace_similarity.similarity_measures import MSE, PearsonCorrelation, SSIMSimilarity
 from compactreasoningmodels.datasets.nonogram_dataset import NonogramDataset
 
 SOLVERS = {

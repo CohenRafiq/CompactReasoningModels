@@ -2,7 +2,7 @@ from typing import Any
 
 import torch
 
-from compactreasoningmodels.losses.categorical_abstain import AbstainLoss
+from compactreasoningmodels.losses.abstain import AbstainLoss
 from compactreasoningmodels.trainers.base import BaseTrainer
 
 

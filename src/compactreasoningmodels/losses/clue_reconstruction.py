@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from compactreasoningmodels.losses.base import BaseCriterion
 
 
-class NonogramLoss(BaseCriterion):
+class ClueReconstructionLoss(BaseCriterion):
     clue_indices_template: torch.Tensor
 
     def __init__(self, reduction: str = "mean"):

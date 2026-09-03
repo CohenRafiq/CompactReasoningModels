@@ -6,7 +6,7 @@ import pandas as pd
 import torch
 
 from compactreasoningmodels.experiments.base import BaseExperiment
-from compactreasoningmodels.solving_traces.similarity_measures import SimilarityMeasure
+from compactreasoningmodels.trace_similarity.similarity_measures import SimilarityMeasure
 from compactreasoningmodels.utils.types import SolverProfile
 
 

@@ -1,4 +1,4 @@
 # @package _global_
 criterion:
-  _target_: compactreasoningmodels.losses.nonogram.NonogramLoss
+  _target_: compactreasoningmodels.losses.clue_reconstruction.ClueReconstructionLoss
   reduction: mean

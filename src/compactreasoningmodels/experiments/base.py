@@ -4,7 +4,7 @@ from typing import Any
 import numpy as np
 import torch
 
-from compactreasoningmodels.solving_traces.similarity_measures import SimilarityMeasure
+from compactreasoningmodels.trace_similarity.similarity_measures import SimilarityMeasure
 from compactreasoningmodels.utils.types import SolverProfile
 
 

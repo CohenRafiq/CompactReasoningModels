@@ -62,3 +62,24 @@ class RecursiveGridMLP(BaseModel):
             out = self.residual_block(out)
 
         return self.fc(out)
+    
+    def full_forward(self, x: Tensor, layer_num: int | None = None) -> Tensor:
+        if x.dim() != 2:
+            raise ValueError(f"Expected 2-D input, got {x.dim()}D")
+        if x.size(-1) != self.input_size:
+            raise ValueError(f"Expected input size {self.input_size}, got {x.size(-1)}")
+
+        x = self.clue_pos_embed(x)
+
+        context = self.input_proj(x)
+        batch_grid = self.grid.expand(x.size(0), -1)
+        out = torch.cat([batch_grid, context], dim=-1)
+
+        layers_outputs = [out]
+
+        for _ in range(self.num_layers if layer_num is None else layer_num):
+            out = self.residual_block(out)
+            layers_outputs.append(out)
+
+        layer_logits = [self.fc(layer_out) for layer_out in layers_outputs]
+        return layer_logits

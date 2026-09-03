@@ -2,7 +2,7 @@ from compactreasoningmodels.experiments.heatmap_store import HeatmapStore
 from compactreasoningmodels.datasets.nonogram_dataset import NonogramDataset
 from torch.utils.data import DataLoader
 from compactreasoningmodels.experiments.noisy_similarity import NoisySimilarityExperiment
-from compactreasoningmodels.solving_traces.similarity_measures import MSE
+from compactreasoningmodels.trace_similarity.similarity_measures import MSE
 from pandas import DataFrame as df
 
 dataset = NonogramDataset(

@@ -4,7 +4,7 @@ import random
 import numpy as np
 import torch
 
-from compactreasoningmodels.losses.nonogram import NonogramLoss
+from compactreasoningmodels.losses.clue_reconstruction import ClueReconstructionLoss
 from compactreasoningmodels.solving_traces.base import SolvingTrace
 
 # Greedily updates every cell based on what value
@@ -20,7 +20,7 @@ class LocalMinViolations(SolvingTrace):
         hit_rate: float = 0.5,
     ):
         super().__init__(clues, grid_shape, initial_grid, hit_rate)
-        self.loss_fn = NonogramLoss(reduction="mean")
+        self.loss_fn = ClueReconstructionLoss(reduction="mean")
         self.tensor_clues = torch.tensor(self.clues.flatten(), dtype=torch.float32).unsqueeze(0)
         self.rows, self.cols = grid_shape
         self.hit_rate = hit_rate

@@ -42,7 +42,7 @@ All experiment configs live in `configs/` and are composed from Hydra groups
 src/compactreasoningmodels/   # namespace package (the import root is `compactreasoningmodels`)
 ├── data_generation/          # puzzle synthesis + constraint propagation + parquet writing
 ├── datasets/                 # Dataset classes (base, in-memory, parquet)
-├── losses/                   # criteria: NonogramLoss, AbstainLoss
+├── losses/                   # criteria: ClueReconstructionLoss, AbstainLoss
 ├── models/                   # architectures: MLP, Transformer, CNN, GridMLP, RecursiveMLP, RecursiveGridMLP
 ├── trainers/                 # training loops: supervised, reward
 ├── loggers/                  # experiment tracking: wandb, null
@@ -77,7 +77,7 @@ representation.
 
 ## Losses
 
-- `NonogramLoss` — differentiable run-length (clue) loss that compares the
+- `ClueReconstructionLoss` — differentiable run-length (clue) loss that compares the
   predicted grid's run-length encoding against the true clues.
 - `AbstainLoss` — 3-channel per-cell cross-entropy where the last channel is an
   abstain class (`output_channels = 3`). Includes an entropy bonus to prevent

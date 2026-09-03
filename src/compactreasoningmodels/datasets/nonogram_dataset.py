@@ -2,6 +2,7 @@ import json
 from collections.abc import Iterator
 from pathlib import Path
 from typing import cast
+import os
 
 import numpy as np
 import torch
@@ -67,14 +68,16 @@ class NonogramDataset(Dataset):
             raise ValueError(f"Unsupported data type: {type(data)}")
 
     def _parse_file(self, file_path: str | Path) -> Iterator[t.ReformattedData]:
+        data_dir = os.getenv("DATA_DIR", "./data/")
+        new_file_path = os.path.join(data_dir, str(file_path))
         if isinstance(file_path, Path):
             file_path = str(file_path)
         if file_path.endswith(".jsonl"):
-            return self._stream_batches(self._iter_jsonl(file_path))
+            return self._stream_batches(self._iter_jsonl(new_file_path))
         elif file_path.endswith(".parquet"):
-            return self._stream_batches(self._iter_parquet(file_path))
+            return self._stream_batches(self._iter_parquet(new_file_path))
         elif file_path.endswith(".npy"):
-            return self._stream_batches(self._iter_npy(file_path))
+            return self._stream_batches(self._iter_npy(new_file_path))
         else:
             raise ValueError(f"Unsupported file format: {file_path}")
 

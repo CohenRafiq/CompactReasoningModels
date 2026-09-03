@@ -1,7 +1,7 @@
 from compactreasoningmodels import datasets, loggers, losses, models, trainers, utils
 from compactreasoningmodels.datasets import NonogramDataset
 from compactreasoningmodels.loggers import BaseLogger, NullLogger, WandbLogger
-from compactreasoningmodels.losses import AbstainLoss, BaseCriterion, NonogramLoss
+from compactreasoningmodels.losses import AbstainLoss, BaseCriterion, ClueReconstructionLoss
 from compactreasoningmodels.models import (
     BaseModel,
     ConvNeuralNetwork,
@@ -24,7 +24,7 @@ __all__ = [
     "utils",
     "NonogramDataset",
     "BaseCriterion",
-    "NonogramLoss",
+    "ClueReconstructionLoss",
     "AbstainLoss",
     "BaseLogger",
     "WandbLogger",

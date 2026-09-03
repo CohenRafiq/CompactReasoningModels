@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from compactreasoningmodels.losses.nonogram import NonogramLoss
+from compactreasoningmodels.losses.clue_reconstruction import ClueReconstructionLoss
 from compactreasoningmodels.solving_traces.base import SolvingTrace
 
 # Updates the entire grid using gradient descent
@@ -16,7 +16,7 @@ class GlobalMinViolations(SolvingTrace):
         initial_grid: np.ndarray | torch.Tensor | None = None,
     ):
         super().__init__(clues, grid_shape, initial_grid)
-        self.loss_fn = NonogramLoss(reduction="mean")
+        self.loss_fn = ClueReconstructionLoss(reduction="mean")
         self.tensor_clues = torch.tensor(self.clues.flatten(), dtype=torch.float32).unsqueeze(0)
         self.rows, self.cols = grid_shape
 

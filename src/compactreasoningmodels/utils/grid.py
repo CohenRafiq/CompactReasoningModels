@@ -1,80 +1,35 @@
-"""Shared utilities for extracting nonogram clues from grids via run-length encoding."""
-
-from __future__ import annotations
-
 from collections.abc import Iterable
+from itertools import groupby
 
 import numpy as np
 import torch
+from compactreasoningmodels.utils.puzzle_types import Grid
 
 
 def get_line_clues(line: Iterable[int] | torch.Tensor, K: int | None = None):
-    """Derive run-length clues from a single binary line.
+    is_tensor = isinstance(line, torch.Tensor)
+    values = line.detach().cpu().tolist() if is_tensor else list(line)
+    runs = [len(list(g)) for v, g in groupby(values) if v]
 
-    Args:
-        line: A 1-D iterable of 0/1 values (list, np.ndarray, torch.Tensor, etc.).
-        K: If given, zero-pad the output to this width and return a numpy array
-           (or torch.Tensor if the input is a tensor).
-
-    Returns:
-        list[int] when *K* is None (empty list for lines with no filled cells),
-        otherwise a K-padded array/tensor of run lengths.
-    """
-    if isinstance(line, torch.Tensor):
-        values = line.detach().cpu().tolist()
-    else:
-        values = list(line)
-
-    runs: list[int] = []
-    count = 0
-    for v in values:
-        if v:
-            count += 1
-        elif count:
-            runs.append(count)
-            count = 0
-    if count:
-        runs.append(count)
     if K is None:
-        return runs
         return runs
 
     padded = runs[:K] + [0] * (K - len(runs))
-    if isinstance(line, torch.Tensor):
-        return torch.tensor(padded, dtype=torch.float32)
-    return np.array(padded, dtype=np.int32)
+    return (
+        torch.tensor(padded, dtype=torch.float32)
+        if is_tensor
+        else np.array(padded, dtype=np.int32)
+    )
 
 
-def derive_clues_from_grid(
-    grid, K: int | None = None
-) -> (
-    tuple[list[list[int]], list[list[int]]]
-    | tuple[np.ndarray, np.ndarray]
-    | tuple[torch.Tensor, torch.Tensor]
-):
-    """Derive (row_clues, col_clues) from a 2-D binary grid.
-
-    Args:
-        grid: A 2-D structure of 0/1 values. Accepted types:
-              list-of-lists, np.ndarray, or torch.Tensor.
-        K: If given, zero-pad each clue line to this width.  The return
-            type matches the input: ndarray → (ndarray, ndarray),
-            Tensor → (Tensor, Tensor), otherwise (list, list).
-
-    Returns:
-        (row_clues, col_clues)
-    """
+def derive_clues_from_grid(grid: Grid, K: int | None = None):
     if isinstance(grid, torch.Tensor):
         return _derive_clues_from_grid_torch(grid, K)
     if isinstance(grid, np.ndarray):
         return _derive_clues_from_grid_np(grid, K)
-    # Generic iterable path
     row_clues = [get_line_clues(row, K) for row in grid]
     col_clues = [get_line_clues(col, K) for col in zip(*grid, strict=True)]
     return row_clues, col_clues
-
-
-# ── NumPy helpers ──────────────────────────────────────────────────────────
 
 
 def _derive_clues_from_grid_np(grid: np.ndarray, K: int | None):
@@ -83,58 +38,125 @@ def _derive_clues_from_grid_np(grid: np.ndarray, K: int | None):
     return row_clues, col_clues
 
 
-def batch_line_clues(lines: np.ndarray, K: int) -> tuple[np.ndarray, np.ndarray]:
-    """Vectorised run-length extraction for a *batch* of binary lines.
-
-    This is an optimised path used by the genetic-algorithm solver where
-    thousands of lines must be processed each generation.
-
-    Args:
-        lines: (M, L) int array of 0/1.
-        K: Maximum number of runs to capture (output zero-padded to this width).
-
-    Returns:
-        run_matrix: (M, K) run lengths, zero-padded.
-        num_runs:   (M,) actual number of runs per line.
-    """
-    M, L = lines.shape
-    pad = np.zeros((M, L + 2), dtype=lines.dtype)
-    pad[:, 1:-1] = lines
-    diff = pad[:, 1:] - pad[:, :-1]
-
-    starts_mask = diff == 1
-    ends_mask = diff == -1
-
-    cum_starts = np.cumsum(starts_mask, axis=1)
-    num_runs = cum_starts[:, -1]
-
-    rows_s, cols_s = np.nonzero(starts_mask)
-    _, cols_e = np.nonzero(ends_mask)
-
-    lengths = cols_e - cols_s
-    run_rank = cum_starts[rows_s, cols_s] - 1
-
-    run_matrix = np.zeros((M, K), dtype=np.int32)
-    valid = run_rank < K
-    run_matrix[rows_s[valid], run_rank[valid]] = lengths[valid]
-
-    return run_matrix, num_runs
-
-
-# ── Torch helpers ──────────────────────────────────────────────────────────
-
-
 def _derive_clues_from_grid_torch(grid: torch.Tensor, K: int | None):
     H, W = grid.shape
-    if K is None:
-        K = max(H, W)
-    row_clues = torch.zeros(H, K, dtype=torch.float32)
-    col_clues = torch.zeros(W, K, dtype=torch.float32)
-
-    for i in range(H):
-        r = get_line_clues(grid[i, :], K)
-        row_clues[i, : r.numel()] = r
-    for j in range(W):
-        c = get_line_clues(grid[:, j], K)
-        col_clues[j, : c.numel()] = c
+    K = K or max(H, W)
+    row_clues = torch.stack([get_line_clues(row, K) for row in grid])
+    col_clues = torch.stack([get_line_clues(col, K) for col in grid.T])
     return row_clues, col_clues
+
+
+def batch_line_clues(lines: np.ndarray, K: int) -> tuple[np.ndarray, np.ndarray]:
+    M, L = lines.shape
+    padded = np.zeros((M, L + 2), dtype=lines.dtype)
+    padded[:, 1:-1] = lines
+    diff = np.diff(padded, axis=1)
+
+    start_counts = np.cumsum(diff == 1, axis=1)
+    num_runs = start_counts[:, -1]
+
+    rows, starts = np.nonzero(diff == 1)
+    _, ends = np.nonzero(diff == -1)
+    run_index = start_counts[rows, starts] - 1
+
+    run_lengths = np.zeros((M, K), dtype=np.int32)
+    keep = run_index < K
+    run_lengths[rows[keep], run_index[keep]] = (ends - starts)[keep]
+
+    return run_lengths, num_runs
+
+
+def normalise_clues(
+    clues: np.ndarray | torch.Tensor
+) -> np.ndarray:
+    arr = clues.detach().cpu().numpy() if isinstance(clues, torch.Tensor) else np.asarray(clues)
+    rows, cols = grid_shape_from_clues(arr)
+    k_row = (cols + 1) // 2
+    k_col = (rows + 1) // 2
+    flat_len = rows * k_row + cols * k_col
+
+    if arr.ndim == 2 and arr.shape[0] == 1:
+        arr = arr.reshape(-1)
+
+    if arr.ndim == 1:
+        if arr.shape[0] != flat_len:
+            raise ValueError(
+                f"Expected {flat_len} flattened clue values for a {rows}x{cols} "
+                f"grid ({rows}x{k_row} row clues + {cols}x{k_col} column clues), "
+                f"got {arr.shape[0]}"
+            )
+        if k_row != k_col:
+            raise ValueError(
+                "Flattened clues are only supported for square grids; pass "
+                "row/column clues as a (2, ...) array instead"
+            )
+        row_clues = arr[: rows * k_row].reshape(rows, k_row)
+        col_clues = arr[rows * k_row :].reshape(cols, k_col)
+        return np.stack([row_clues, col_clues])
+
+    if arr.ndim == 3 and arr.shape[0] == 2:
+        return arr
+
+    raise ValueError(
+        f"clues must be a tensor/array of shape ({flat_len},) or "
+        f"(1, {flat_len}) with the flat [row clues; column clues] dataloader "
+        f"layout, or a stacked array of shape (2, H, K). Got shape {arr.shape}"
+    )
+
+
+def ternarise(arr: np.ndarray, epsilon: float = 1e-2) -> np.ndarray:
+    # -1 = unknown, 0 = empty, 1 = filled
+    out = np.full(arr.shape, -1, dtype=int)
+    out[arr <= epsilon] = 0
+    out[arr >= 1 - epsilon] = 1
+    return out
+
+
+def unpad_clue(clue) -> tuple[int, ...]:
+    if hasattr(clue, "tolist"):
+        clue = clue.tolist()
+    flat: list[int] = []
+    stack = [clue]
+    while stack:
+        item = stack.pop(0)
+        if isinstance(item, (list, tuple)):
+            stack = list(item) + stack
+        else:
+            flat.append(int(item))
+    return tuple(b for b in flat if b > 0)
+
+
+def check_clue(line: np.ndarray, clue: np.ndarray, epsilon: float = 1e-2) -> bool:
+    rounded = ternarise(np.asarray(line), epsilon).tolist()
+    if -1 in rounded:
+        return False
+    return get_line_clues(rounded) == list(clue)
+
+
+def is_solved(clues: np.ndarray, grid: np.ndarray, epsilon: float = 1e-2) -> bool:
+    if clues.ndim == 3:
+        row_clues, col_clues = clues[0], clues[1]
+    else:
+        num_rows = len(grid)
+        row_clues, col_clues = clues[:num_rows], clues[num_rows:]
+
+    return all(check_clue(grid[i], row_clues[i], epsilon) for i in range(len(grid))) and all(
+        check_clue(grid[:, j], col_clues[j], epsilon) for j in range(grid.shape[1])
+    )
+
+def grid_shape_from_clues(clues: np.ndarray) -> tuple[int, int]:
+    # TODO handle rectangular grids
+    if clues.ndim == 3 and clues.shape[0] == 2:
+        return clues.shape[1], clues.shape[1]
+    if clues.ndim == 1:
+        flat_len = clues.shape[0]
+        for rows in range(1, flat_len):
+            cols = flat_len - rows
+            k_row = (cols + 1) // 2
+            k_col = (rows + 1) // 2
+            if rows * k_row + cols * k_col == flat_len:
+                return rows, cols
+    raise ValueError(f"Cannot determine grid shape from clues with shape {clues.shape}")
+
+def blank_grid(rows: int, cols: int) -> np.ndarray:
+    return np.full((rows, cols), 0.5, dtype=np.float32)
