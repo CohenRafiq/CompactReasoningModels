@@ -9,6 +9,9 @@ from compactreasoningmodels.solvers import BaseSolver
 from compactreasoningmodels.utils.load_model import load_model
 
 class ModelSolver(BaseSolver):
+
+    default_step_ratio: int = 1
+    
     def __init__(self, model: BaseModel | str | Path | None = None):
         model_dir = os.getenv("MODEL_DIR", "./models/")
         if model is None or isinstance(model, (str, Path)):

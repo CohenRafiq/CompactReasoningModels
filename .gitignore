@@ -13,6 +13,7 @@ __pycache__/
 data/raw/*
 data/processed/*
 data/transformed/*
+data/traces/*
 models/*
 outputs/*
 run_experiments/artifacts/*
@@ -22,6 +23,7 @@ results/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/transformed/.gitkeep
+!data/traces/.gitkeep
 
 # Wandb
 wandb/

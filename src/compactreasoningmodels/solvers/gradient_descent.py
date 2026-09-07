@@ -4,8 +4,9 @@ import torch
 from compactreasoningmodels.solvers import BaseSolver
 from compactreasoningmodels.losses.clue_reconstruction import ClueReconstructionLoss
 
-
 class BaseGradientDescentSolver(BaseSolver):
+
+    default_step_ratio: int = 30
 
     def __init__(self, **kwargs):
         self.loss_fn = ClueReconstructionLoss(reduction="none")
@@ -14,14 +15,10 @@ class BaseGradientDescentSolver(BaseSolver):
 
 
     def _sample_grid(self, n: int, sampling_ratio: float) -> torch.Tensor:
-        """Continuous or binary weight in [0, 1] used by GlobalMixin to
-        blend between the previous value and the freshly-optimised value."""
-        raise NotImplementedError
+        return (torch.rand(n, device=self.device) < sampling_ratio).float()
 
     def _sample_mask(self, n: int, sampling_ratio: float) -> torch.Tensor:
-        """Hard {0, 1} selection mask used by coordinate-wise mixins
-        (GaussSeidel, Jacobi) to decide which variables are unfrozen."""
-        raise NotImplementedError
+        return self._sample_grid(n, sampling_ratio)
 
     def _reset_optimizer_state(self, n: int) -> None:
         """Called once at the start of each `_step` call."""
@@ -62,38 +59,6 @@ class BaseGradientDescentSolver(BaseSolver):
 
 
 # =============================================================================
-# Sampling mixins
-# =============================================================================
-
-class DiscreteSamplingMixin:
-    def _sample_grid(self, n: int, sampling_ratio: float) -> torch.Tensor:
-        return (torch.rand(n, device=self.device) < sampling_ratio).float()
-
-    # Already a hard {0, 1} mask, so reuse it directly.
-    def _sample_mask(self, n: int, sampling_ratio: float) -> torch.Tensor:
-        return self._sample_grid(n, sampling_ratio)
-
-
-class BetaSamplingMixin:
-    def _sample_grid(
-        self, n: int, sampling_ratio: float, concentration: float = 10
-    ) -> torch.Tensor:
-        if sampling_ratio <= 0:
-            return torch.zeros(n, device=self.device)
-        if sampling_ratio >= 1:
-            return torch.ones(n, device=self.device)
-        alpha = sampling_ratio * concentration
-        beta = (1 - sampling_ratio) * concentration
-        return torch.distributions.Beta(alpha, beta).sample((n,)).to(self.device)
-
-    # A continuous Beta draw is essentially never exactly 0, so it cannot be
-    # used to select a sparse subset via nonzero(). Selection needs its own
-    # hard draw.
-    def _sample_mask(self, n: int, sampling_ratio: float) -> torch.Tensor:
-        return (torch.rand(n, device=self.device) < sampling_ratio).float()
-
-
-# =============================================================================
 # Optimiser mixins
 # =============================================================================
 
@@ -101,7 +66,7 @@ class AdamOptimizerMixin:
 
     def __init__(
         self,
-        step_size: float = 5e-2,
+        step_size: float = 0.1,
         beta1: float = 0.9,
         beta2: float = 0.999,
         eps: float = 1e-8,
@@ -141,7 +106,7 @@ class AdamOptimizerMixin:
 
 class SGDOptimizerMixin:
 
-    def __init__(self, step_size: float = 1, **kwargs):
+    def __init__(self, step_size: float = 0.1, **kwargs):
         self.step_size = step_size
         super().__init__(**kwargs)
 
@@ -274,15 +239,15 @@ class JacobiMixin:
 # Concrete solvers
 # =============================================================================
 
-class GDGlobalAdamSolver(DiscreteSamplingMixin, AdamOptimizerMixin, GlobalMixin, BaseGradientDescentSolver):
+class GDGlobalAdamSolver(AdamOptimizerMixin, GlobalMixin, BaseGradientDescentSolver):
     pass
-class GDGlobalSGDSolver(DiscreteSamplingMixin, SGDOptimizerMixin, GlobalMixin, BaseGradientDescentSolver):
+class GDGlobalSGDSolver(SGDOptimizerMixin, GlobalMixin, BaseGradientDescentSolver):
     pass
-class GDGaussSeidelAdamSolver(DiscreteSamplingMixin, AdamOptimizerMixin, GaussSeidelMixin, BaseGradientDescentSolver):
+class GDGaussSeidelAdamSolver(AdamOptimizerMixin, GaussSeidelMixin, BaseGradientDescentSolver):
     pass
-class GDGaussSeidelSGDSolver(DiscreteSamplingMixin, SGDOptimizerMixin, GaussSeidelMixin, BaseGradientDescentSolver):
+class GDGaussSeidelSGDSolver(SGDOptimizerMixin, GaussSeidelMixin, BaseGradientDescentSolver):
     pass
-class GDJacobiAdamSolver(DiscreteSamplingMixin, AdamOptimizerMixin, JacobiMixin, BaseGradientDescentSolver):
+class GDJacobiAdamSolver(AdamOptimizerMixin, JacobiMixin, BaseGradientDescentSolver):
     pass
-class GDJacobiSGDSolver(DiscreteSamplingMixin, SGDOptimizerMixin, JacobiMixin, BaseGradientDescentSolver):
+class GDJacobiSGDSolver(SGDOptimizerMixin, JacobiMixin, BaseGradientDescentSolver):
     pass

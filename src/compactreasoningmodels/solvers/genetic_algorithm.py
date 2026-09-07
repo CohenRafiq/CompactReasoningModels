@@ -4,15 +4,20 @@ from compactreasoningmodels.solvers import BaseSolver
 from compactreasoningmodels.utils.grid import batch_line_clues
 
 class BaseGeneticAlgorithm(BaseSolver):
+
+    default_step_ratio: int = 50
+
     def __init__(
         self,
-        population_size: int = 100,
-        max_samples: int = 20,
+        population_size: int = 500,
+        max_samples: int = 10,
         mutation_rate: float = 0.01,
+        sampling_modifier: float = 0.2,
     ):
         self.population_size = population_size
         self.max_samples = max_samples
         self.mutation_rate = mutation_rate
+        self.sampling_modifier = sampling_modifier
 
     def _generate_initial_population(
             self, grid_shape: tuple[int, int], probabilities: np.ndarray,
@@ -63,7 +68,7 @@ class BaseGeneticAlgorithm(BaseSolver):
         return np.where(flip_mask, 1 - children, children).astype(np.int8)
     
     def _step(self, clues, prev, num_steps, sampling_ratio):
-        num_samples = max(1, int(self.max_samples * sampling_ratio))
+        num_samples = self.max_samples
         population = self._generate_initial_population(prev.shape, prev, self.population_size, num_samples)
         steps = [self._population_to_grid(population)]
         expected_num_runs = (
@@ -75,9 +80,13 @@ class BaseGeneticAlgorithm(BaseSolver):
             fitness_scores = self._fitness(
                 population.reshape(-1, *prev.shape), prev.shape, clues, expected_num_runs
             ).reshape(num_samples, self.population_size)
+            noise_scale = self.sampling_modifier * (1.0 - sampling_ratio)
+            multiplicative_noise = np.random.lognormal(0, noise_scale, size=fitness_scores.shape)
+            noisy_fitness_scores = fitness_scores * multiplicative_noise
+            noisy_fitness_scores = np.clip(noisy_fitness_scores, 0, 1)
 
-            parents1 = self._select_parents(population, fitness_scores)
-            parents2 = self._select_parents(population, fitness_scores)
+            parents1 = self._select_parents(population, noisy_fitness_scores)
+            parents2 = self._select_parents(population, noisy_fitness_scores)
             offspring = self._mutate(self._crossover(parents1, parents2))
 
             population = self._apply_elitism(population, fitness_scores, offspring)

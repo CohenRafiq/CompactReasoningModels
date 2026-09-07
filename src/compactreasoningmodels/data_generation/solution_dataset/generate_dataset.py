@@ -8,8 +8,8 @@ import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from compactreasoningmodels.data_generation.clue_generator import ClueGenerator
-from compactreasoningmodels.data_generation.constraint_propagator import ConstraintPropagator
+from compactreasoningmodels.data_generation.solution_dataset.clue_generator import ClueGenerator
+from compactreasoningmodels.data_generation.solution_dataset.constraint_propagator import ConstraintPropagator
 
 try:
     mp.set_start_method("spawn", force=True)

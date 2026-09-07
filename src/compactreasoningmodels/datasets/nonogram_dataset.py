@@ -157,9 +157,17 @@ class NonogramDataset(Dataset):
 
     def _parse_dict_entry(self, entry: dict) -> tuple[t.Clues, torch.Tensor, dict]:
         meta = dict(entry)
-        rows = cast(list[list[int]], meta.pop("rows", meta.pop("row_clues", [])))
-        cols = cast(list[list[int]], meta.pop("cols", meta.pop("col_clues", [])))
+        clues = cast(t.Clues, meta.pop("clues", None))
+        if clues:
+            rows = cast(list[list[int]], clues[0])
+            cols = cast(list[list[int]], clues[1])
+        else:
+            rows = cast(list[list[int]], meta.pop("rows", meta.pop("row_clues", [])))
+            cols = cast(list[list[int]], meta.pop("cols", meta.pop("col_clues", [])))
+
         grid = self._grid_to_tensor(cast(t.Grid, meta.pop("grid", meta.pop("solution", []))))
+        if isinstance(meta.get("meta"), dict):
+            meta.update(meta.pop("meta"))
         return [rows, cols], grid, meta
 
     def _parse_single_entry(self, entry: t.Entry) -> tuple[t.Clues, torch.Tensor, dict]:
@@ -194,12 +202,11 @@ class NonogramDataset(Dataset):
         def mask(line: list[int]) -> list[float]:
             return [0.0] * len(line) + [-torch.inf] * (max_runs_in_clue - len(line))
 
-        padded_clues = [[[pad(line) for line in group] for group in puzzle] for puzzle in clues]
-        padding_mask = [[[mask(line) for line in group] for group in puzzle] for puzzle in clues]
-
+        padded = [[[pad(line) for line in (group if group else [[0]])] for group in puzzle] for puzzle in clues]
+        masks = [[[mask(line) for line in (group if group else [[0]])] for group in puzzle] for puzzle in clues]
         return (
-            torch.tensor(padded_clues, dtype=torch.float32).flatten(start_dim=1),
-            torch.tensor(padding_mask, dtype=torch.float32).flatten(start_dim=1),
+            torch.tensor(padded, dtype=torch.float32).flatten(start_dim=1),
+            torch.tensor(masks, dtype=torch.float32).flatten(start_dim=1),
         )
 
     def _pad_sequence(
@@ -336,8 +343,15 @@ class NonogramDataset(Dataset):
     def __len__(self) -> int:
         return len(self.X)
 
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor | None, torch.Tensor, dict]:
-        return self.X[idx], self.y[idx], self.padding_mask[idx], self.meta[idx]
+    def __getitem__(self, idx: int,) -> tuple[torch.Tensor, torch.Tensor | None, torch.Tensor, dict]:
+        return {
+            "X": self.X[idx],
+            "y": self.y[idx],
+            "padding_mask": self.padding_mask[idx],
+            "meta": self.meta[idx],
+            "X_raw": self.X_raw[idx],
+            "y_raw": self.y_raw[idx],
+        }
 
     @property
     def input_shape(self) -> tuple[int, ...] | None:

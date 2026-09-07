@@ -7,6 +7,9 @@ from compactreasoningmodels.utils.grid import ternarise, unpad_clue
 
 
 class MAC(BaseSolver):
+
+    default_step_ratio: int = 1
+
     def _row_probabilities(
         self, blocks: tuple[int, ...], length: int,
         known: tuple[int, ...] | None = None
@@ -105,15 +108,34 @@ class MAC(BaseSolver):
         return output_grid
 
     def _step(self, clues, initial_grid: np.ndarray, num_steps: int, sampling_ratio: float = 1.0) -> np.ndarray:
-        steps = [initial_grid.copy()]
+        row_belief = initial_grid.copy()
+        col_belief = initial_grid.copy()
+
+        combined0 = self._combine(row_belief, col_belief)
+        if combined0 is None:
+            combined0 = initial_grid.copy()
+        steps = [combined0]
+
         for _ in range(num_steps):
-            prev = steps[-1]
-            known_grid = ternarise(prev, epsilon=1e-9)
-            row_grid = self._loop_directions(prev, clues[0], known_grid, sampling_ratio)
-            col_grid = self._loop_directions(prev.T, clues[1], known_grid.T, sampling_ratio)
-            combined = self._combine(row_grid, col_grid.T)
-            if combined is None:
-                print("Inconsistent clues or grid state encountered.")
+            known_grid = ternarise(steps[-1], epsilon=0)
+
+            row_grid = self._loop_directions(row_belief, clues[0], known_grid, sampling_ratio)
+            if row_grid is None:
+                print("Inconsistent clues or grid state encountered. DIRECTION: ROWS")
                 return steps
+
+            col_grid_T = self._loop_directions(col_belief.T, clues[1], known_grid.T, sampling_ratio)
+            if col_grid_T is None:
+                print("Inconsistent clues or grid state encountered. DIRECTION: COLUMNS")
+                return steps
+            col_grid = col_grid_T.T
+
+            combined = self._combine(row_grid, col_grid)
+            if combined is None:
+                print("Inconsistent clues or grid state encountered. DIRECTION: COMBINATION")
+                return steps
+
+            row_belief = row_grid
+            col_belief = col_grid
             steps.append(combined)
         return np.stack(steps, axis=0)
