@@ -6,8 +6,6 @@ from compactreasoningmodels.losses.clue_reconstruction import ClueReconstruction
 
 class BaseGradientDescentSolver(BaseSolver):
 
-    default_step_ratio: int = 30
-
     def __init__(self, **kwargs):
         self.loss_fn = ClueReconstructionLoss(reduction="none")
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -64,9 +62,11 @@ class BaseGradientDescentSolver(BaseSolver):
 
 class AdamOptimizerMixin:
 
+    default_step_ratio: int = 5
+
     def __init__(
         self,
-        step_size: float = 0.1,
+        step_size: float = 1.5,
         beta1: float = 0.9,
         beta2: float = 0.999,
         eps: float = 1e-8,
@@ -106,7 +106,9 @@ class AdamOptimizerMixin:
 
 class SGDOptimizerMixin:
 
-    def __init__(self, step_size: float = 0.1, **kwargs):
+    default_step_ratio: int = 3
+
+    def __init__(self, step_size: float = 70.0, **kwargs):
         self.step_size = step_size
         super().__init__(**kwargs)
 

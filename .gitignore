@@ -27,3 +27,6 @@ results/*
 
 # Wandb
 wandb/
+
+# Jupyter
+.ipynb_checkpoints/

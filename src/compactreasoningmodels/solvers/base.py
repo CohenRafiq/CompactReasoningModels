@@ -10,28 +10,28 @@ from compactreasoningmodels.utils.grid import normalise_clues, blank_grid, grid_
 
 class BaseSolver(ABC):
 
-    defualt_step_ratio: int = 1
+    default_step_ratio: int = 1
 
     def try_solve(self, clues: Clues, grid: np.ndarray, 
-                  max_steps: int = 50, sampling_ratio: float = 1.0, 
+                  max_steps: int = 10, sampling_ratio: float = 1.0, 
                   step_ratio: int | None = None) -> tuple:
 
         if step_ratio is None:
-            step_ratio = self.defualt_step_ratio
+            step_ratio = self.default_step_ratio
 
         steps = self.step(clues, num_steps=max_steps, sampling_ratio=sampling_ratio, step_ratio=step_ratio)
-        min_solve_steps = []
         solved = False
-        for step in steps:
-            min_solve_steps.append(step)
+        steps_to_solve = -1
+        for i, step in enumerate(steps):
             if np.array_equal(np.round(step).flatten(), grid):
                 solved = True
+                steps_to_solve = i + 1
                 break
         
-        cr_losses = [ClueReconstructionLoss(reduction="mean")(torch.from_numpy(step).reshape(1, 25), clues.unsqueeze(0).flatten(1)) for step in steps]
+        cr_losses = [ClueReconstructionLoss(reduction="mean")(torch.from_numpy(step).reshape(1, 25), clues.unsqueeze(0).flatten(1))[0] for step in steps]
         mse_losses = [np.mean((step.flatten() - np.array(grid)) ** 2) for step in steps]
 
-        return steps, cr_losses, mse_losses, len(steps), solved, step_ratio
+        return steps, steps_to_solve,cr_losses, mse_losses, len(steps), solved, step_ratio
     
 
     def step(self, clues: Clues, prev: np.ndarray = None, 
@@ -42,7 +42,7 @@ class BaseSolver(ABC):
         grid_shape = grid_shape_from_clues(clues)
         clues = normalise_clues(clues)
         prev = prev if prev is not None else blank_grid(*grid_shape)
-        actual_steps = num_steps * step_ratio
+        actual_steps = (num_steps - 1) * step_ratio + 1
         all_steps = self._step(clues, prev, actual_steps, sampling_ratio=sampling_ratio)
         reduced_steps = [all_steps[i] for i in range(0, len(all_steps), step_ratio)]
 

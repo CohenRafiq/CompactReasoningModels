@@ -5,8 +5,6 @@ from compactreasoningmodels.utils.grid import batch_line_clues
 
 class BaseGeneticAlgorithm(BaseSolver):
 
-    default_step_ratio: int = 50
-
     def __init__(
         self,
         population_size: int = 500,
@@ -96,6 +94,7 @@ class BaseGeneticAlgorithm(BaseSolver):
 
 class TournamentSelectionMixin:
     tournament_size: int = 3
+    default_step_ratio: int = 3
 
     def _select_parents(self, population, fitness_scores):
         num_samples, pop_size = fitness_scores.shape
@@ -109,6 +108,7 @@ class TournamentSelectionMixin:
         return population[s_range[:, None], winner_idx]
 
 class ProportionateSelectionMixin:
+    default_step_ratio: int = 6
 
     def _select_parents(self, population, fitness_scores):
         num_samples, pop_size = fitness_scores.shape
