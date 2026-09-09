@@ -38,7 +38,7 @@ class BaseSolver(ABC):
              num_steps: int = 1, sampling_ratio: float = 1.0,
              step_ratio: int | None = None) -> np.ndarray:
         if step_ratio is None:
-            step_ratio = self.defualt_step_ratio
+            step_ratio = self.default_step_ratio
         grid_shape = grid_shape_from_clues(clues)
         clues = normalise_clues(clues)
         prev = prev if prev is not None else blank_grid(*grid_shape)

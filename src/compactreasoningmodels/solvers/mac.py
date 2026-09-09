@@ -8,7 +8,10 @@ from compactreasoningmodels.utils.grid import ternarise, unpad_clue
 
 class MAC(BaseSolver):
 
-    default_step_ratio: int = 1
+    default_step_ratio: int = 2
+
+    def __init__(self, sampling_ratio_modifier: float = 0.5):
+        self.sampling_ratio_modifier = sampling_ratio_modifier
 
     def _row_probabilities(
         self, blocks: tuple[int, ...], length: int,
@@ -103,7 +106,7 @@ class MAC(BaseSolver):
             probs = self._row_probabilities(blocks, length=grid.shape[1], known=known)
             if probs is None:
                 return None
-            if random.random() <= sampling_ratio:
+            if random.random() <= sampling_ratio * self.sampling_ratio_modifier:
                 output_grid[i, :] = probs
         return output_grid
 

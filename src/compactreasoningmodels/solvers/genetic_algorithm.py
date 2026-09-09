@@ -108,7 +108,7 @@ class TournamentSelectionMixin:
         return population[s_range[:, None], winner_idx]
 
 class ProportionateSelectionMixin:
-    default_step_ratio: int = 6
+    default_step_ratio: int = 10
 
     def _select_parents(self, population, fitness_scores):
         num_samples, pop_size = fitness_scores.shape

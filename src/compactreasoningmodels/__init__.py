@@ -1,8 +1,8 @@
 from compactreasoningmodels import datasets, loggers, losses, models, trainers, utils
-from compactreasoningmodels.datasets import NonogramDataset
-from compactreasoningmodels.loggers import BaseLogger, NullLogger, WandbLogger
-from compactreasoningmodels.losses import AbstainLoss, BaseCriterion, ClueReconstructionLoss
-from compactreasoningmodels.models import (
+from .datasets import NonogramDataset
+from .loggers import BaseLogger, NullLogger, WandbLogger
+from .losses import AbstainLoss, BaseCriterion, ClueReconstructionLoss
+from .models import (
     BaseModel,
     ConvNeuralNetwork,
     GridMLP,
@@ -11,9 +11,9 @@ from compactreasoningmodels.models import (
     RecursiveMLP,
     Transformer,
 )
-from compactreasoningmodels.trainers import BaseTrainer, NNGRewardTrainer, NNGSupervisedTrainer
-from compactreasoningmodels.utils.io import get_next_model_number, save_model
-from compactreasoningmodels.utils.null_target import NullTarget
+from .trainers import BaseTrainer, NNGRewardTrainer, NNGSupervisedTrainer
+from .utils.io import get_next_model_number, save_model
+from .utils.null_target import NullTarget
 
 __all__ = [
     "datasets",
