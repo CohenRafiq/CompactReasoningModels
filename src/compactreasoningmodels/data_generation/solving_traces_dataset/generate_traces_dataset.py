@@ -9,15 +9,16 @@ from compactreasoningmodels.datasets.nonogram_dataset import NonogramDataset
 from compactreasoningmodels.datasets.collate import collate_combined
 
 TEMP_SOLVERS = {
-    # "mac": SOLVERS["mac"],
+    "mac": SOLVERS["mac"],
     # "genetic_algorithm_det": SOLVERS["genetic_algorithm_det"],
-    "gradient_descent_global_adam": SOLVERS["gradient_descent_global_adam"],
+    # "gradient_descent_global_adam": SOLVERS["gradient_descent_global_adam"],
     "gradient_descent_global_sgd": SOLVERS["gradient_descent_global_sgd"],
     # "model_solver": SOLVERS["model_solver"],
     # "genetic_algorithm_dep": SOLVERS["genetic_algorithm_dep"],
+    "backtracking_search": SOLVERS["backtracking_search"],
 }
 
-SAMPLING_RATIO_RUNS = [(1.0, 1), (0.8, 3), (0.6, 3), (0.4, 3)]
+SAMPLING_RATIO_RUNS = [(1.0, 1), (0.75, 3), (0.5, 3)]
 
 def to_serialisable(x):
     if torch.is_tensor(x):
@@ -34,7 +35,7 @@ def to_serialisable(x):
 
 def main():
     os.environ["DATA_DIR"] = os.path.join(os.getcwd(), "data")
-    dataset = NonogramDataset("raw/nonogram_5x5.jsonl", max_size=50)
+    dataset = NonogramDataset("raw/nonogram_5x5.jsonl", max_size=5)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, collate_fn=collate_combined)
     output_path = os.path.join(os.environ["DATA_DIR"], "traces/test.jsonl")
     

@@ -43,10 +43,9 @@ class BaseSolver(ABC):
         clues = normalise_clues(clues)
         prev = prev if prev is not None else blank_grid(*grid_shape)
         actual_steps = (num_steps - 1) * step_ratio + 1
-        all_steps = self._step(clues, prev, actual_steps, sampling_ratio=sampling_ratio)
-        reduced_steps = [all_steps[i] for i in range(0, len(all_steps), step_ratio)]
-
-        return np.array(reduced_steps)
+        all_steps = self._step(clues, prev, int(actual_steps), sampling_ratio=sampling_ratio)
+        indices = np.linspace(0, len(all_steps) - 1, num_steps, dtype=int)
+        return np.array([all_steps[i] for i in indices])
 
     @abstractmethod
     def _step(self, clues: np.ndarray, prev: np.ndarray, num_steps: int, sampling_ratio: float) -> np.ndarray:

@@ -6,6 +6,7 @@ from compactreasoningmodels.solvers.gradient_descent import (
     GDGaussSeidelAdamSolver, GDGaussSeidelSGDSolver,
     GDJacobiAdamSolver, GDJacobiSGDSolver,
 )
+from compactreasoningmodels.solvers.search import BacktrackingSearch
 from compactreasoningmodels.solvers.model_solver import ModelSolver
 
 
@@ -20,6 +21,7 @@ __all__ = [
     "GDGaussSeidelSGDSolver",
     "GDJacobiAdamSolver",
     "GDJacobiSGDSolver",
+    "BacktrackingSearch",
     "ModelSolver",
 ]
 
@@ -34,4 +36,5 @@ SOLVERS = {
     # "gradient_descent_jacobi_adam": GDJacobiAdamSolver,
     # "gradient_descent_jacobi_sgd": GDJacobiSGDSolver,
     "model_solver": ModelSolver,
+    "backtracking_search": BacktrackingSearch,
 }
