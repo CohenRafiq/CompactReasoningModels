@@ -7,8 +7,8 @@ class BaseGeneticAlgorithm(BaseSolver):
 
     def __init__(
         self,
-        population_size: int = 500,
-        max_samples: int = 10,
+        population_size: int = 1000,
+        max_samples: int = 1,
         mutation_rate: float = 0.01,
         sampling_modifier: float = 0.2,
     ):
@@ -16,6 +16,7 @@ class BaseGeneticAlgorithm(BaseSolver):
         self.max_samples = max_samples
         self.mutation_rate = mutation_rate
         self.sampling_modifier = sampling_modifier
+        super().__init__()
 
     def _generate_initial_population(
             self, grid_shape: tuple[int, int], probabilities: np.ndarray,
@@ -58,7 +59,7 @@ class BaseGeneticAlgorithm(BaseSolver):
         return offspring  # Default: no elitism, just return offspring
 
     def _crossover(self, parents1, parents2):
-        cross_mask = np.random.randint(0, 2, size=parents1.shape).astype(bool)
+        cross_mask = np.random.random(size=parents1.shape) < 0.5
         return np.where(cross_mask, parents1, parents2)
 
     def _mutate(self, children):
@@ -94,7 +95,7 @@ class BaseGeneticAlgorithm(BaseSolver):
 
 class TournamentSelectionMixin:
     tournament_size: int = 3
-    default_step_ratio: int = 3
+    default_step_ratio: int = 2
 
     def _select_parents(self, population, fitness_scores):
         num_samples, pop_size = fitness_scores.shape
@@ -108,7 +109,7 @@ class TournamentSelectionMixin:
         return population[s_range[:, None], winner_idx]
 
 class ProportionateSelectionMixin:
-    default_step_ratio: int = 10
+    default_step_ratio: int = 4
 
     def _select_parents(self, population, fitness_scores):
         num_samples, pop_size = fitness_scores.shape

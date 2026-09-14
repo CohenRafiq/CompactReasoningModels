@@ -1,0 +1,9 @@
+,backtracking_search,genetic_algorithm_dep,genetic_algorithm_det,gradient_descent_bang_bang,gradient_descent_global_adam,gradient_descent_global_sgd,mac,model_solver
+backtracking_search,,3.1679,3.57,2.3799,2.0387,2.2852,2.7984,3.1217
+genetic_algorithm_dep,3.1679,,2.8984,2.0692,1.8353,2.0278,1.9796,2.4315
+genetic_algorithm_det,3.57,2.8984,,2.3459,2.0221,2.2502,2.7293,3.0609
+gradient_descent_bang_bang,2.3799,2.0692,2.3459,,2.9311,3.2508,2.2432,2.4881
+gradient_descent_global_adam,2.0387,1.8353,2.0221,2.9311,,2.7208,1.9148,2.1367
+gradient_descent_global_sgd,2.2852,2.0278,2.2502,3.2508,2.7208,,2.1519,2.3932
+mac,2.7984,1.9796,2.7293,2.2432,1.9148,2.1519,,2.9345
+model_solver,3.1217,2.4315,3.0609,2.4881,2.1367,2.3932,2.9345,

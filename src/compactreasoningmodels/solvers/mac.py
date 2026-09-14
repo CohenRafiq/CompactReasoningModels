@@ -1,4 +1,5 @@
 import random
+from functools import lru_cache
 
 import numpy as np
 
@@ -12,11 +13,12 @@ class MAC(BaseSolver):
 
     def __init__(self, sampling_ratio_modifier: float = 0.5):
         self.sampling_ratio_modifier = sampling_ratio_modifier
+        super().__init__()
 
-    def _row_probabilities(
-        self, blocks: tuple[int, ...], length: int,
-        known: tuple[int, ...] | None = None
-        ) -> np.ndarray | None:
+    @staticmethod
+    @lru_cache(maxsize=10_000)
+    def _row_probabilities_cached(blocks: tuple, length: int, known: tuple) -> np.ndarray | None:
+        """Cached row probability computation."""
         known_arr = list(known) if known is not None else [-1] * length
         k = len(blocks)
 
@@ -87,14 +89,38 @@ class MAC(BaseSolver):
 
         return np.array([c / total for c in counts], dtype=np.float64)
 
+    def _row_probabilities(
+        self, blocks: tuple[int, ...], length: int,
+        known: tuple[int, ...] | None = None
+        ) -> np.ndarray | None:
+        """Wrapper that converts to hashable types for caching."""
+        blocks_tuple = tuple(int(b) for b in blocks)
+        known_tuple = tuple(int(x) for x in known) if known is not None else tuple([-1] * length)
+        return self._row_probabilities_cached(blocks_tuple, length, known_tuple)
+
     @staticmethod
-    def _combine(p: np.ndarray, q: np.ndarray) -> np.ndarray | None:
-        if p is None or q is None:
-            return None
+    @lru_cache(maxsize=10_000)
+    def _combine_cached(p_tuple: tuple, q_tuple: tuple) -> tuple | None:
+        """Cached combine operation."""
+        p = np.array(p_tuple, dtype=np.float64)
+        q = np.array(q_tuple, dtype=np.float64)
         with np.errstate(divide="ignore", invalid="ignore"):
             logit = np.log(p / (1.0 - p)) + np.log(q / (1.0 - q))
             result = 1.0 / (1.0 + np.exp(-logit))
-        return None if np.any(np.isnan(result)) else result
+        if np.any(np.isnan(result)):
+            return None
+        return tuple(result.flatten().tolist())
+
+    def _combine(self, p: np.ndarray, q: np.ndarray) -> np.ndarray | None:
+        """Wrapper that converts to hashable types for caching."""
+        if p is None or q is None:
+            return None
+        p_tuple = tuple(p.flatten().tolist())
+        q_tuple = tuple(q.flatten().tolist())
+        result = self._combine_cached(p_tuple, q_tuple)
+        if result is None:
+            return None
+        return np.array(result).reshape(p.shape)
 
     def _loop_directions(
         self, grid: np.ndarray, direction_clues, known_grid: np.ndarray, sampling_ratio: float
@@ -125,20 +151,21 @@ class MAC(BaseSolver):
             row_grid = self._loop_directions(row_belief, clues[0], known_grid, sampling_ratio)
             if row_grid is None:
                 print("Inconsistent clues or grid state encountered. DIRECTION: ROWS")
-                return steps
+                return np.stack(steps, axis=0)
 
             col_grid_T = self._loop_directions(col_belief.T, clues[1], known_grid.T, sampling_ratio)
             if col_grid_T is None:
                 print("Inconsistent clues or grid state encountered. DIRECTION: COLUMNS")
-                return steps
+                return np.stack(steps, axis=0)
             col_grid = col_grid_T.T
 
             combined = self._combine(row_grid, col_grid)
             if combined is None:
                 print("Inconsistent clues or grid state encountered. DIRECTION: COMBINATION")
-                return steps
+                return np.stack(steps, axis=0)
 
             row_belief = row_grid
             col_belief = col_grid
             steps.append(combined)
+        steps = steps[1:]
         return np.stack(steps, axis=0)

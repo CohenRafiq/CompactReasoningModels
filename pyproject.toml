@@ -3,7 +3,7 @@ authors = [{name = "CohenRafiq", email = "cohen.rafiq@gmail.com"}]
 name = "CompactReasoningModels"
 requires-python = ">= 3.11, < 3.14"
 version = "0.1.0"
-dependencies = ["kymatio>=0.3.0,<0.4", "cka-pytorch>=1.1.3,<2"]
+dependencies = ["kymatio>=0.3.0,<0.4", "cka-pytorch>=1.1.3,<2", "stable-baselines3>=2.9.0,<3"]
 
 [build-system]
 build-backend = "hatchling.build"
@@ -33,6 +33,7 @@ transformers = ">=5.9.0,<6"
 wandb = ">=0.25.1,<0.26"
 scikit-image = ">=0.26.0,<0.27"
 nbstripout = ">=0.9.1,<0.10"
+gymnasium = ">=1.3.0,<2"
 
 [tool.pixi.pypi-dependencies]
 CompactReasoningModels = { path = ".", editable = true }
@@ -43,8 +44,8 @@ ruff = ">=0.6"
 scipy-stubs = ">=1.15"
 torch = { version = ">=2.5.1", index = "https://download.pytorch.org/whl/cu128" }
 
-[tool.pixi.activation]
-env = { PYTHONPATH = "$PIXI_PROJECT_ROOT:$PYTHONPATH" }
+[tool.pixi.activation.env]
+PYTHONPATH = "$PIXI_PROJECT_ROOT:$PYTHONPATH"
 
 [tool.pixi.tasks]
 lint = "ruff check src scripts tests"

@@ -52,11 +52,14 @@ def batch_line_clues(lines: np.ndarray, K: int) -> tuple[np.ndarray, np.ndarray]
     padded[:, 1:-1] = lines
     diff = np.diff(padded, axis=1)
 
-    start_counts = np.cumsum(diff == 1, axis=1)
+    is_start = (diff == 1)
+    is_end = (diff == -1)
+
+    start_counts = np.cumsum(is_start, axis=1)
     num_runs = start_counts[:, -1]
 
-    rows, starts = np.nonzero(diff == 1)
-    _, ends = np.nonzero(diff == -1)
+    rows, starts = np.nonzero(is_start)
+    _, ends = np.nonzero(is_end)
     run_index = start_counts[rows, starts] - 1
 
     run_lengths = np.zeros((M, K), dtype=np.int32)

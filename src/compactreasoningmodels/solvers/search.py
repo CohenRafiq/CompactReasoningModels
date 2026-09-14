@@ -1,8 +1,9 @@
 import numpy as np
 import random
+import os
 from concurrent.futures import ThreadPoolExecutor
-
 from functools import lru_cache
+
 from ..solvers import BaseSolver
 from ..utils.grid import ternarise
 
@@ -16,11 +17,12 @@ class BacktrackingSearch(BaseSolver):
 
     default_step_ratio: int = 10
 
-    def __init__(self, sample_size:int = 10):
+    def __init__(self, sample_size: int = 10):
         self.sample_size = sample_size
+        super().__init__()
 
     @staticmethod
-    @lru_cache(maxsize=100_000)
+    @lru_cache(maxsize=200_000)
     def _line_feasible(vals: tuple, target: tuple) -> bool:
         """Cached across ALL calls, not just within one _check_line invocation."""
         n = len(vals)
@@ -63,10 +65,9 @@ class BacktrackingSearch(BaseSolver):
         if not self._check_line(grid[:, col_update], clues[1][col_update]):
             return False
         return True
+
     def _rec_search(self, clues, grid, steps, row_update=None, col_update=None,
                      initial=False, max_steps=None):
-        # NOTE: now takes `steps` explicitly instead of self.steps,
-        # so each parallel run has its own list.
         if max_steps is not None and len(steps) >= max_steps:
             raise _StepLimitReached()
 
@@ -107,9 +108,8 @@ class BacktrackingSearch(BaseSolver):
         except _StepLimitReached:
             solved = False
 
-        if solved:
-            while len(steps) < num_steps:
-                steps.append(steps[-1].copy().astype(np.int8))
+        while len(steps) < num_steps:
+            steps.append(steps[-1].copy().astype(np.int8))
 
         steps = [np.where(g == -1, 0.5, g.astype(float)) for g in steps[:num_steps]]
         return np.array(steps)
@@ -117,20 +117,11 @@ class BacktrackingSearch(BaseSolver):
     def _step(self, clues: np.ndarray, prev: np.ndarray, num_steps: int, sampling_ratio: float) -> np.ndarray:
         num_samples = max(1, round(self.sample_size * sampling_ratio))
 
-        # Threads: fine if _rec_search is numpy/loop heavy (releases the GIL somewhat),
-        # but true CPU parallelism needs a ProcessPoolExecutor instead (see note below).
+        # Use ThreadPoolExecutor to avoid nested ProcessPoolExecutor issues.
+        # Each single_run is numpy/Python heavy and releases the GIL somewhat.
         with ThreadPoolExecutor(max_workers=num_samples) as ex:
             futures = [ex.submit(self._single_run, clues, prev, num_steps) for _ in range(num_samples)]
             runs = [f.result() for f in futures]
 
         stacked = np.stack(runs, axis=0)          # (num_samples, num_steps, H, W)
-        return stacked.mean(axis=0)                # (num_steps, H, W)
-
-class MinimumRemainingValuesMixin:
-    pass
-
-class DegreeHeuristicMixin:
-    pass
-
-class LeastConstrainingValueMixin:
-    pass
+        return stacked.mean(axis=0)[1:]                # (num_steps, H, W)

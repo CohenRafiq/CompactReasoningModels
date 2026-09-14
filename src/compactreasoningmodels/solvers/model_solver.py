@@ -11,12 +11,14 @@ from compactreasoningmodels.utils.load_model import load_model
 class ModelSolver(BaseSolver):
 
     default_step_ratio: int = 1
+    default_model_path: str = os.path.join(
+        os.getenv("MODEL_DIR", "./models/"),
+        "jsonldataset/recursivegridmlp/06.pt"
+    )
     
     def __init__(self, model: BaseModel | str | Path | None = None):
-        model_dir = os.getenv("MODEL_DIR", "./models/")
         if model is None or isinstance(model, (str, Path)):
-            path = model if model is not None else os.path.join(
-                model_dir, "jsonldataset/recursivegridmlp/06.pt")
+            path = model if model is not None else self.default_model_path
             model = load_model(
                 RecursiveGridMLP,
                 path,
@@ -29,6 +31,7 @@ class ModelSolver(BaseSolver):
             )
         self.model = model
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        super().__init__()
 
     def _logits_to_grid(self, logits: torch.Tensor, grid_shape: tuple) -> np.ndarray:
         reshaped_logits = logits.cpu().detach()[0].reshape(-1, *grid_shape)

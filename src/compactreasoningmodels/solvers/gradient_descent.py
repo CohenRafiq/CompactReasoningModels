@@ -1,13 +1,14 @@
 import numpy as np
 import torch
 
+from compactreasoningmodels.losses.base import BaseCriterion
 from compactreasoningmodels.solvers import BaseSolver
 from compactreasoningmodels.losses.clue_reconstruction import ClueReconstructionLoss
 
 class BaseGradientDescentSolver(BaseSolver):
 
-    def __init__(self, **kwargs):
-        self.loss_fn = ClueReconstructionLoss(reduction="none")
+    def __init__(self, loss_fn: BaseCriterion | None = None, **kwargs):
+        self.loss_fn = loss_fn if loss_fn is not None else ClueReconstructionLoss(reduction="none")
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         super().__init__(**kwargs)
 
@@ -37,7 +38,6 @@ class BaseGradientDescentSolver(BaseSolver):
             np.asarray(clues).flatten(), dtype=torch.float32, device=self.device
         ).unsqueeze(0)
 
-        # Clamp before logit to avoid ±inf on exact 0/1 boundaries.
         prev_t = torch.tensor(prev, dtype=torch.float32, device=self.device)
         prev_t = torch.clamp(prev_t, 1e-6, 1 - 1e-6)
         logit_grid = torch.logit(prev_t, eps=1e-6)
@@ -52,7 +52,7 @@ class BaseGradientDescentSolver(BaseSolver):
             new_logits = self._optimise(current, n, sampling_ratio, tensor_clues)
             steps_torch.append(new_logits)
 
-        steps = [torch.sigmoid(step).detach().cpu().numpy() for step in steps_torch]
+        steps = [torch.sigmoid(step).detach().cpu().numpy() for step in steps_torch[1:]]
         return np.array(steps)
 
 
@@ -103,6 +103,25 @@ class AdamOptimizerMixin:
 
         return self.step_size * m_hat / (v_hat.sqrt() + self.eps)
 
+    def _compute_update_batch(self, grads: torch.Tensor, idxs: torch.Tensor) -> torch.Tensor:
+        """Vectorized Adam update for a batch of cells."""
+        self._t[idxs] = self._t[idxs] + 1
+        t = self._t[idxs].float()
+
+        m = self._m[idxs]
+        v = self._v[idxs]
+
+        m = self.beta1 * m + (1 - self.beta1) * grads
+        v = self.beta2 * v + (1 - self.beta2) * grads.pow(2)
+
+        self._m[idxs] = m
+        self._v[idxs] = v
+
+        m_hat = m / (1 - self.beta1 ** t)
+        v_hat = v / (1 - self.beta2 ** t)
+
+        return self.step_size * m_hat / (v_hat.sqrt() + self.eps)
+
 
 class SGDOptimizerMixin:
 
@@ -117,6 +136,28 @@ class SGDOptimizerMixin:
 
     def _compute_update(self, grad: torch.Tensor, idxs: torch.Tensor) -> torch.Tensor:
         return self.step_size * grad
+
+    def _compute_update_batch(self, grads: torch.Tensor, idxs: torch.Tensor) -> torch.Tensor:
+        """Vectorized SGD update for a batch of cells."""
+        return self.step_size * grads
+
+
+class BangBangOptimizerMixin:
+
+    default_step_ratio: int = 3
+
+    def __init__(self, step_size: float = 10.0, **kwargs):
+        self.step_size = step_size
+        super().__init__(**kwargs)
+
+    def _reset_optimizer_state(self, n: int) -> None:
+        pass
+
+    def _compute_update(self, grad: torch.Tensor, idxs: torch.Tensor) -> torch.Tensor:
+        return self.step_size * torch.sign(grad) * torch.sqrt(torch.abs(grad) + 1e-8)
+
+    def _compute_update_batch(self, grads: torch.Tensor, idxs: torch.Tensor) -> torch.Tensor:
+        return self.step_size * torch.sign(grads) * torch.sqrt(torch.abs(grads) + 1e-8)
 
 
 # =============================================================================
@@ -170,24 +211,37 @@ class GaussSeidelMixin:
             return grid.view(prev.shape)
 
         order = idxs[torch.randperm(idxs.numel(), device=self.device)]
+        num_selected = order.numel()
 
-        for i in order:
-            i = i.unsqueeze(0)  # keep everything 1-element-tensor shaped
+        # Pre-allocate reusable tensor for the candidate grid
+        candidate_buf = grid.clone()
 
-            fixed_val = grid[i]
-            free_val = fixed_val.clone().requires_grad_(True)
+        # Pre-compute clue tensor repeat for efficiency
+        clues_repeated = tensor_clues.expand(num_selected, -1)
 
-            candidate = grid.clone()
-            candidate[i] = free_val
-            loss = self.loss_fn(candidate.unsqueeze(0), tensor_clues)
+        for i_pos, i in enumerate(order):
+            i_scalar = i.item()
+
+            fixed_val = grid[i].clone()
+
+            # Reuse pre-allocated buffer: reset to current grid state
+            candidate_buf.copy_(grid)
+            candidate_buf[i_scalar] = fixed_val
+            candidate_buf.requires_grad_(True)
+
+            loss = self.loss_fn(candidate_buf.unsqueeze(0), tensor_clues)
             if isinstance(loss, tuple):
                 loss = loss[0]
             loss = loss.sum()
-            grad = torch.autograd.grad(loss, free_val)[0]
+            grad = torch.autograd.grad(loss, candidate_buf)[0]
 
             with torch.no_grad():
-                update = self._compute_update(grad, i)
+                grad_i = grad[i_scalar:i_scalar+1]
+                update = self._compute_update(grad_i, i.unsqueeze(0))
                 grid[i] = fixed_val - update
+
+            # Detach for next iteration
+            candidate_buf.detach_()
 
         return grid.view(prev.shape)
 
@@ -210,31 +264,49 @@ class JacobiMixin:
 
         anchor = grid.clone()  # frozen starting point for all gradients
         order = idxs[torch.randperm(idxs.numel(), device=self.device)]
-        deltas = []
+        num_selected = order.numel()
 
-        for i in order:
-            i = i.unsqueeze(0)
+        # Vectorized Jacobi: create batch of candidates, one per selected cell
+        # Each candidate differs from anchor at exactly one position
+        batch_candidates = anchor.unsqueeze(0).expand(num_selected, -1).clone()
 
-            fixed_val = anchor[i]  # gradient anchored to start of pass
-            free_val = fixed_val.clone().requires_grad_(True)
+        # Set each candidate's selected cell to a leaf variable with requires_grad
+        fixed_vals = anchor[order].clone()
+        free_vals = fixed_vals.clone().requires_grad_(True)
 
-            candidate = anchor.clone()
-            candidate[i] = free_val
-            loss = self.loss_fn(candidate.unsqueeze(0), tensor_clues)
-            if isinstance(loss, tuple):
-                loss = loss[0]
-            loss = loss.sum()
-            grad = torch.autograd.grad(loss, free_val)[0]
+        # Scatter free_vals into the batch: candidate[i, order[i]] = free_vals[i]
+        batch_idx = torch.arange(num_selected, device=self.device)
+        batch_candidates[batch_idx, order] = free_vals
 
-            with torch.no_grad():
-                update = self._compute_update(grad, i)
-                deltas.append((i, update, fixed_val))
+        # Batch forward pass through loss
+        batch_clues = tensor_clues.expand(num_selected, -1)
+        losses = self.loss_fn(batch_candidates, batch_clues)
+        if isinstance(losses, tuple):
+            losses = losses[0]
+        # losses shape: (num_selected,)
 
-        # Apply all deltas simultaneously (all relative to anchor)
-        for i, update, fixed_val in deltas:
-            grid[i] = fixed_val - update
+        # Backward pass: get gradient of total loss w.r.t. free_vals
+        total_loss = losses.sum()
+        total_loss.backward()
+
+        grads = free_vals.grad  # (num_selected,)
+
+        with torch.no_grad():
+            updates = self._compute_update_batch(grads, order)
+
+        # Apply all updates simultaneously
+        grid[order] = fixed_vals - updates
 
         return grid.view(prev.shape)
+
+    def _compute_update_batch(self, grads: torch.Tensor, idxs: torch.Tensor) -> torch.Tensor:
+        """Vectorized update computation for a batch of cells.
+        Default implementation falls back to per-cell computation."""
+        updates = []
+        for i in range(idxs.numel()):
+            update = self._compute_update(grads[i:i+1], idxs[i:i+1])
+            updates.append(update)
+        return torch.cat(updates)
 
 
 # =============================================================================
@@ -252,4 +324,6 @@ class GDGaussSeidelSGDSolver(SGDOptimizerMixin, GaussSeidelMixin, BaseGradientDe
 class GDJacobiAdamSolver(AdamOptimizerMixin, JacobiMixin, BaseGradientDescentSolver):
     pass
 class GDJacobiSGDSolver(SGDOptimizerMixin, JacobiMixin, BaseGradientDescentSolver):
+    pass
+class GDBangBangSolver(BangBangOptimizerMixin, GlobalMixin, BaseGradientDescentSolver):
     pass

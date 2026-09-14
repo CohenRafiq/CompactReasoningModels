@@ -12,6 +12,10 @@ class BaseSolver(ABC):
 
     default_step_ratio: int = 1
 
+    def __init__(self, **kwargs):
+        self._cr_loss_fn = ClueReconstructionLoss(reduction="none")
+        super().__init__(**kwargs)
+
     def try_solve(self, clues: Clues, grid: np.ndarray, 
                   max_steps: int = 10, sampling_ratio: float = 1.0, 
                   step_ratio: int | None = None) -> tuple:
@@ -28,10 +32,32 @@ class BaseSolver(ABC):
                 steps_to_solve = i + 1
                 break
         
-        cr_losses = [ClueReconstructionLoss(reduction="mean")(torch.from_numpy(step).reshape(1, 25), clues.unsqueeze(0).flatten(1))[0] for step in steps]
-        mse_losses = [np.mean((step.flatten() - np.array(grid)) ** 2) for step in steps]
+        # Batch loss computation: compute CR loss and MSE for all steps at once
+        num_steps_actual = len(steps)
+        if num_steps_actual > 0:
+            # Stack all steps into a single tensor: (num_steps, H, W)
+            steps_tensor = torch.from_numpy(np.stack(steps)).float()
+            grid_flat = steps_tensor.reshape(num_steps_actual, -1)  # (num_steps, S)
+            
+            # Batch clues tensor: repeat for each step
+            clues_tensor = torch.from_numpy(np.asarray(clues)).float()
+            clues_flat = clues_tensor.unsqueeze(0).flatten(1).expand(num_steps_actual, -1)
+            
+            # Batch CR loss computation
+            with torch.no_grad():
+                cr_losses_batch = self._cr_loss_fn(grid_flat, clues_flat)
+                if isinstance(cr_losses_batch, tuple):
+                    cr_losses_batch = cr_losses_batch[0]  # per_sample loss
+                cr_losses = cr_losses_batch.tolist()
+            
+            # Batch MSE computation
+            target = np.array(grid).flatten()
+            mse_losses = np.mean((steps_tensor.numpy().reshape(num_steps_actual, -1) - target) ** 2, axis=1).tolist()
+        else:
+            cr_losses = []
+            mse_losses = []
 
-        return steps, steps_to_solve,cr_losses, mse_losses, len(steps), solved, step_ratio
+        return steps, steps_to_solve, cr_losses, mse_losses, len(steps), solved, step_ratio
     
 
     def step(self, clues: Clues, prev: np.ndarray = None, 
