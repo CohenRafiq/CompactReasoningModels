@@ -128,6 +128,16 @@ def unpad_clue(clue) -> tuple[int, ...]:
             flat.append(int(item))
     return tuple(b for b in flat if b > 0)
 
+def pad_clues(clues: list[list[int]], pad_value=0):
+    grid_side_length = max(len(clues[0]), len(clues[1]))
+    k = (grid_side_length + 1) // 2
+    target_shape = (2, grid_side_length, k)
+    padded_tensor = torch.full(target_shape, pad_value, dtype=torch.float32)
+    for i, clue_set in enumerate(clues):
+        for j, clue in enumerate(clue_set):
+            padded_tensor[i, j, :len(clue)] = torch.tensor(clue, dtype=torch.float32)
+    
+    return padded_tensor
 
 def check_clue(line: np.ndarray, clue: np.ndarray, epsilon: float = 1e-2) -> bool:
     rounded = ternarise(np.asarray(line), epsilon).tolist()
