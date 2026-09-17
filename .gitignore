@@ -12,7 +12,7 @@ __pycache__/
 
 data/base_dataset/nonograms/*
 data/traces_dataset/nonograms/*
-models/*
+model_checkpoints/*
 outputs/*
 run_experiments/artifacts/*
 results/*

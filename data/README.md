@@ -1,7 +1,6 @@
 ## Datasets
 
 ### TODO:
-- Fill in correct location
 - Diagram showing example traces
 - change data generation code to be ideal style
     - base datset
@@ -18,7 +17,7 @@ data
 ```
 
 ### base_dataset
-Base dataset conatining puzzles and solutions with some additional metadata. Used for training neural models and as a base for the trace dataset. Code for constructing the dataset can be found at `LOCATION` and running instructions can be found in `LOCATION\README.md`. Files are stored in jsonl format. Below is an example entry:
+Base dataset conatining puzzles and solutions with some additional metadata. Used for training neural models and as a base for the trace dataset. Code for constructing the dataset can be found at `pipeline/base_dataset` and running instructions can be found in `pipeline/base_dataset\README.md`. Files are stored in jsonl format. Below is an example entry:
 
 Current
 ```json
@@ -61,10 +60,10 @@ Ideal
     }
 }
 ```
-Naming convention is `[dimensions]-[entries]-[extra].jsonl` such as `5x5-100_000-no_search.jsonl`
+Naming convention is `[dimensions]-[entries]-[extra].jsonl` such as `5x5-100_000-no_search.jsonl`. Current code produces only puzzles with a single unique solution.
 
 ### traces_dataset
-Dataset containing puzzles, solutions, step-by-step solving traces and metadata. Solving traces are the steps a solver would take to solve the puzzle (each step is the updated grid from the previous step). Same naming convention as `base_dataset` and also stored as jsonl. Code for construction is found `LOCATION` and running instruction are found `LOCATION/README.md`.
+Dataset containing puzzles, solutions, step-by-step solving traces and metadata. Solving traces are the steps a solver would take to solve the puzzle (each step is the updated grid from the previous step). Same naming convention as `base_dataset` and also stored as jsonl. Code for construction is found `pipeline/solvers` and running instruction are found `pipeline/solvers/README.md`.
 
 Current
 ```json
