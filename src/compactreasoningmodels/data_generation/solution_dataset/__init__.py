@@ -1,5 +1,7 @@
 from compactreasoningmodels.data_generation.solution_dataset.clue_generator import ClueGenerator
-from compactreasoningmodels.data_generation.solution_dataset.constraint_propagator import ConstraintPropagator
+from compactreasoningmodels.data_generation.solution_dataset.constraint_propagator import (
+    ConstraintPropagator,
+)
 from compactreasoningmodels.data_generation.solution_dataset.generate_dataset import (
     main as generate_dataset,
 )

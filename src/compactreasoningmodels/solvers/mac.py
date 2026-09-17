@@ -8,7 +8,6 @@ from compactreasoningmodels.utils.grid import ternarise, unpad_clue
 
 
 class MAC(BaseSolver):
-
     default_step_ratio: int = 2
 
     def __init__(self, sampling_ratio_modifier: float = 0.5):
@@ -90,9 +89,8 @@ class MAC(BaseSolver):
         return np.array([c / total for c in counts], dtype=np.float64)
 
     def _row_probabilities(
-        self, blocks: tuple[int, ...], length: int,
-        known: tuple[int, ...] | None = None
-        ) -> np.ndarray | None:
+        self, blocks: tuple[int, ...], length: int, known: tuple[int, ...] | None = None
+    ) -> np.ndarray | None:
         """Wrapper that converts to hashable types for caching."""
         blocks_tuple = tuple(int(b) for b in blocks)
         known_tuple = tuple(int(x) for x in known) if known is not None else tuple([-1] * length)
@@ -136,7 +134,9 @@ class MAC(BaseSolver):
                 output_grid[i, :] = probs
         return output_grid
 
-    def _step(self, clues, initial_grid: np.ndarray, num_steps: int, sampling_ratio: float = 1.0) -> np.ndarray:
+    def _step(
+        self, clues, initial_grid: np.ndarray, num_steps: int, sampling_ratio: float = 1.0
+    ) -> np.ndarray:
         row_belief = initial_grid.copy()
         col_belief = initial_grid.copy()
 

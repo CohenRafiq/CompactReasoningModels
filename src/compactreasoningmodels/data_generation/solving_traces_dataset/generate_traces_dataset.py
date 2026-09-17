@@ -1,16 +1,16 @@
 import gc
+import json
 import multiprocessing as mp
 import os
-import torch
-import json
-import numpy as np
 import time
 from collections import defaultdict
 
-from compactreasoningmodels.solvers import SOLVERS
-from compactreasoningmodels.datasets.nonogram_dataset import NonogramDataset
+import numpy as np
+import torch
+
 from compactreasoningmodels.datasets.collate import collate_combined
-from compactreasoningmodels.losses.clue_reconstruction2 import ClueReconstructionLoss
+from compactreasoningmodels.datasets.nonogram_dataset import NonogramDataset
+from compactreasoningmodels.solvers import SOLVERS
 
 # TEMP_SOLVERS = {
 #     "mac": SOLVERS["mac"],
@@ -61,8 +61,9 @@ def _process_puzzle(puzzle_data):
 
     Returns (result_dict, timing_dict).
     """
-    (puzzle_dict, processed_clues, processed_grid, solver_names,
-     sampling_ratio_runs, max_steps) = puzzle_data
+    (puzzle_dict, processed_clues, processed_grid, solver_names, sampling_ratio_runs, max_steps) = (
+        puzzle_data
+    )
 
     result_dict = dict(puzzle_dict)
     result_dict["traces"] = {}
@@ -76,22 +77,25 @@ def _process_puzzle(puzzle_data):
         for sampling_ratio, number_of_samples in sampling_ratio_runs:
             runs = []
             for _ in range(number_of_samples):
-                steps, steps_to_solve, cr_losses, mse_losses, num_steps, solved, step_ratio = \
+                steps, steps_to_solve, cr_losses, mse_losses, num_steps, solved, step_ratio = (
                     solver.try_solve(
                         clues=processed_clues,
                         grid=processed_grid,
                         sampling_ratio=sampling_ratio,
-                        max_steps=max_steps
+                        max_steps=max_steps,
                     )
-                runs.append({
-                    "steps": [step for step in steps],
-                    "steps_to_solve": steps_to_solve,
-                    "cr_losses": cr_losses,
-                    "mse_losses": mse_losses,
-                    "num_steps": num_steps,
-                    "solved": solved,
-                    "step_ratio": step_ratio,
-                })
+                )
+                runs.append(
+                    {
+                        "steps": [step for step in steps],
+                        "steps_to_solve": steps_to_solve,
+                        "cr_losses": cr_losses,
+                        "mse_losses": mse_losses,
+                        "num_steps": num_steps,
+                        "solved": solved,
+                        "step_ratio": step_ratio,
+                    }
+                )
             solver_dict[sampling_ratio] = runs
         result_dict["traces"][solver_name] = solver_dict
         timing[solver_name] = time.time() - t0
@@ -105,7 +109,7 @@ def _generate_puzzle_args(dataset, solver_names, sampling_ratio_runs, max_steps)
         dataset, batch_size=1, shuffle=False, collate_fn=collate_combined
     )
 
-    for X, y, padding_mask, X_raw, y_raw, meta in dataloader:
+    for X, y, _, X_raw, y_raw, meta in dataloader:
         processed_clues = X.squeeze(0).reshape(2, 5, 3)
         processed_grid = y.squeeze(0)
 
@@ -119,8 +123,14 @@ def _generate_puzzle_args(dataset, solver_names, sampling_ratio_runs, max_steps)
             },
         }
 
-        yield (puzzle_dict, processed_clues, processed_grid,
-               solver_names, sampling_ratio_runs, max_steps)
+        yield (
+            puzzle_dict,
+            processed_clues,
+            processed_grid,
+            solver_names,
+            sampling_ratio_runs,
+            max_steps,
+        )
 
 
 def _flush_batch(f, batch_records):
@@ -134,7 +144,6 @@ def _print_timing_table(all_timings, total_puzzles):
     """Print a summary table of per-solver timing."""
     if not all_timings:
         return
-    solver_names = list(all_timings[0].keys())
     # Aggregate
     totals = defaultdict(float)
     for t in all_timings:
@@ -149,7 +158,7 @@ def _print_timing_table(all_timings, total_puzzles):
         pct = 100 * totals[name] / grand_total if grand_total > 0 else 0
         print(f"{name:<35} {avg:>10.4f} {totals[name]:>10.2f} {pct:>7.1f}%")
     print("-" * 65)
-    print(f"{'TOTAL':<35} {grand_total/total_puzzles:>10.4f} {grand_total:>10.2f}")
+    print(f"{'TOTAL':<35} {grand_total / total_puzzles:>10.4f} {grand_total:>10.2f}")
 
 
 def main(
@@ -210,9 +219,7 @@ def main(
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
     # Generate puzzle arguments
-    puzzle_args_gen = _generate_puzzle_args(
-        dataset, solver_names, sampling_ratio_runs, max_steps
-    )
+    puzzle_args_gen = _generate_puzzle_args(dataset, solver_names, sampling_ratio_runs, max_steps)
 
     # Process puzzles in parallel
     generated = 0
@@ -244,9 +251,7 @@ def main(
                 initargs=(solver_names,),
             ) as pool:
                 result_iter = pool.imap_unordered(
-                    _process_puzzle,
-                    puzzle_args_gen,
-                    chunksize=chunksize
+                    _process_puzzle, puzzle_args_gen, chunksize=chunksize
                 )
 
                 for result, timing in result_iter:
@@ -269,7 +274,7 @@ def main(
     end_total = time.time()
     elapsed = end_total - start_total
 
-    print(f"\n=== Generation completed ===")
+    print("\n=== Generation completed ===")
     print(f"Workers: {n_workers}  chunksize: {chunksize}")
     print(f"Puzzles: {generated}")
     print(f"Time:    {elapsed:.2f}s")
@@ -285,49 +290,55 @@ if __name__ == "__main__":
         description="Generate solving traces dataset with parallel processing"
     )
     parser.add_argument(
-        "-d", "--data-dir",
-        type=str, default=None,
-        help="Data directory path (default: $DATA_DIR or ./data)"
+        "-d",
+        "--data-dir",
+        type=str,
+        default=None,
+        help="Data directory path (default: $DATA_DIR or ./data)",
     )
     parser.add_argument(
-        "-i", "--input",
-        type=str, default="raw/nonogram_5x5.jsonl",
-        help="Input dataset path (default: raw/nonogram_5x5.jsonl)"
+        "-i",
+        "--input",
+        type=str,
+        default="raw/nonogram_5x5.jsonl",
+        help="Input dataset path (default: raw/nonogram_5x5.jsonl)",
     )
     parser.add_argument(
-        "-o", "--output",
-        type=str, default=None,
-        help="Output JSONL path (default: data/traces/test.jsonl)"
+        "-o",
+        "--output",
+        type=str,
+        default=None,
+        help="Output JSONL path (default: data/traces/test.jsonl)",
     )
     parser.add_argument(
-        "-n", "--max-size",
-        type=int, default=5,
-        help="Maximum number of puzzles to process (default: 5)"
+        "-n",
+        "--max-size",
+        type=int,
+        default=5,
+        help="Maximum number of puzzles to process (default: 5)",
     )
     parser.add_argument(
-        "--solvers",
-        nargs="+", default=None,
-        help="Solver names to use (default: all)"
+        "--solvers", nargs="+", default=None, help="Solver names to use (default: all)"
     )
     parser.add_argument(
-        "--max-steps",
-        type=int, default=20,
-        help="Maximum steps per solver run (default: 20)"
+        "--max-steps", type=int, default=20, help="Maximum steps per solver run (default: 20)"
     )
     parser.add_argument(
-        "-w", "--workers",
-        type=int, default=None,
-        help="Number of parallel workers (default: cpu_count)"
+        "-w",
+        "--workers",
+        type=int,
+        default=None,
+        help="Number of parallel workers (default: cpu_count)",
     )
     parser.add_argument(
-        "-b", "--batch-size",
-        type=int, default=10,
-        help="Batch size for writing (default: 10)"
+        "-b", "--batch-size", type=int, default=10, help="Batch size for writing (default: 10)"
     )
     parser.add_argument(
-        "-c", "--chunksize",
-        type=int, default=None,
-        help="Chunk size for multiprocessing (default: auto)"
+        "-c",
+        "--chunksize",
+        type=int,
+        default=None,
+        help="Chunk size for multiprocessing (default: auto)",
     )
 
     args = parser.parse_args()

@@ -2,15 +2,15 @@ from typing import cast
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
-
-from compactreasoningmodels.datasets.nonogram_dataset import NonogramDataset
-from compactreasoningmodels.losses.clue_reconstruction import ClueReconstructionLoss
 from compactreasoningmodels.solving_traces.arc_consistency import ArcConsistency
 from compactreasoningmodels.solving_traces.discrete_genetic import DiscreteGeneticAlgorithm
 from compactreasoningmodels.solving_traces.global_min_violations import GlobalMinViolations
 from compactreasoningmodels.solving_traces.local_min_violations import LocalMinViolations
 from compactreasoningmodels.solving_traces.model_solver import ModelSolver
+from torch.utils.data import DataLoader
+
+from compactreasoningmodels.datasets.nonogram_dataset import NonogramDataset
+from compactreasoningmodels.losses.clue_reconstruction import ClueReconstructionLoss
 from compactreasoningmodels.utils.types import SolverProfile
 
 

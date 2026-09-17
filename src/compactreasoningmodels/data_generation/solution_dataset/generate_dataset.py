@@ -9,7 +9,9 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from compactreasoningmodels.data_generation.solution_dataset.clue_generator import ClueGenerator
-from compactreasoningmodels.data_generation.solution_dataset.constraint_propagator import ConstraintPropagator
+from compactreasoningmodels.data_generation.solution_dataset.constraint_propagator import (
+    ConstraintPropagator,
+)
 
 try:
     mp.set_start_method("spawn", force=True)

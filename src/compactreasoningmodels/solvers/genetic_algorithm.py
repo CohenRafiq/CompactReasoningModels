@@ -3,8 +3,8 @@ import numpy as np
 from compactreasoningmodels.solvers import BaseSolver
 from compactreasoningmodels.utils.grid import batch_line_clues
 
-class BaseGeneticAlgorithm(BaseSolver):
 
+class BaseGeneticAlgorithm(BaseSolver):
     def __init__(
         self,
         population_size: int = 1000,
@@ -19,19 +19,33 @@ class BaseGeneticAlgorithm(BaseSolver):
         super().__init__()
 
     def _generate_initial_population(
-            self, grid_shape: tuple[int, int], probabilities: np.ndarray,
-            population_size, concurrent_samples) -> np.ndarray:
+        self,
+        grid_shape: tuple[int, int],
+        probabilities: np.ndarray,
+        population_size,
+        concurrent_samples,
+    ) -> np.ndarray:
         shape = (population_size, concurrent_samples, *grid_shape)
-        return (np.random.random(size=shape) < probabilities).astype(np.int8).reshape(concurrent_samples, population_size, *grid_shape)
+        return (
+            (np.random.random(size=shape) < probabilities)
+            .astype(np.int8)
+            .reshape(concurrent_samples, population_size, *grid_shape)
+        )
 
     def _fitness(
-            self, grids: np.ndarray, grid_shape: tuple[int, int], 
-            clues: np.ndarray, expected_num_runs: np.ndarray) -> np.ndarray:
+        self,
+        grids: np.ndarray,
+        grid_shape: tuple[int, int],
+        clues: np.ndarray,
+        expected_num_runs: np.ndarray,
+    ) -> np.ndarray:
         rows, cols = grid_shape
         row_lines = grids.reshape(-1, cols)
         col_lines = grids.transpose(0, 2, 1).reshape(-1, rows)
 
-        def line_violations(lines: np.ndarray, clues: np.ndarray, expected_num_runs: np.ndarray) -> np.ndarray:
+        def line_violations(
+            lines: np.ndarray, clues: np.ndarray, expected_num_runs: np.ndarray
+        ) -> np.ndarray:
             reps = lines.shape[0] // clues.shape[0]  # number of grids in this batch
 
             runs, num_runs = batch_line_clues(lines, clues.shape[1])
@@ -55,7 +69,9 @@ class BaseGeneticAlgorithm(BaseSolver):
     def _select_parents(self, population: np.ndarray, fitness_scores: np.ndarray) -> np.ndarray:
         raise NotImplementedError("This method should be implemented in subclasses.")
 
-    def _apply_elitism(self, population: np.ndarray, fitness_scores: np.ndarray, offspring: np.ndarray) -> np.ndarray:
+    def _apply_elitism(
+        self, population: np.ndarray, fitness_scores: np.ndarray, offspring: np.ndarray
+    ) -> np.ndarray:
         return offspring  # Default: no elitism, just return offspring
 
     def _crossover(self, parents1, parents2):
@@ -65,15 +81,14 @@ class BaseGeneticAlgorithm(BaseSolver):
     def _mutate(self, children):
         flip_mask = np.random.random(size=children.shape) < self.mutation_rate
         return np.where(flip_mask, 1 - children, children).astype(np.int8)
-    
+
     def _step(self, clues, prev, num_steps, sampling_ratio):
         num_samples = self.max_samples
-        population = self._generate_initial_population(prev.shape, prev, self.population_size, num_samples)
+        population = self._generate_initial_population(
+            prev.shape, prev, self.population_size, num_samples
+        )
         steps = [self._population_to_grid(population)]
-        expected_num_runs = (
-            np.count_nonzero(clues[0], axis=1), 
-            np.count_nonzero(clues[1], axis=1)
-            )
+        expected_num_runs = (np.count_nonzero(clues[0], axis=1), np.count_nonzero(clues[1], axis=1))
 
         for _ in range(num_steps):
             fitness_scores = self._fitness(
@@ -93,6 +108,7 @@ class BaseGeneticAlgorithm(BaseSolver):
 
         return np.stack(steps, axis=0)
 
+
 class TournamentSelectionMixin:
     tournament_size: int = 3
     default_step_ratio: int = 2
@@ -102,11 +118,14 @@ class TournamentSelectionMixin:
         num_children = pop_size - (1 if getattr(self, "_uses_elitism", False) else 0)
         s_range = np.arange(num_samples)
 
-        contenders = np.random.randint(0, pop_size, size=(num_samples, num_children, self.tournament_size))
+        contenders = np.random.randint(
+            0, pop_size, size=(num_samples, num_children, self.tournament_size)
+        )
         fit_c = fitness_scores[s_range[:, None, None], contenders]
         winner_local = np.argmax(fit_c, axis=2)
         winner_idx = np.take_along_axis(contenders, winner_local[..., None], axis=2).squeeze(-1)
         return population[s_range[:, None], winner_idx]
+
 
 class ProportionateSelectionMixin:
     default_step_ratio: int = 4
@@ -123,10 +142,9 @@ class ProportionateSelectionMixin:
         cum_probs = np.cumsum(probs, axis=1)
 
         draws = np.random.random(size=(num_samples, num_children))
-        winner_idx = np.array([
-            np.searchsorted(cum_probs[i], draws[i], side="right")
-            for i in range(num_samples)
-        ])
+        winner_idx = np.array(
+            [np.searchsorted(cum_probs[i], draws[i], side="right") for i in range(num_samples)]
+        )
         winner_idx = np.clip(winner_idx, 0, pop_size - 1)
         return population[s_range[:, None], winner_idx]
 
@@ -140,5 +158,10 @@ class ElitismMixin:
         elite = population[s_range, elite_idx]
         return np.concatenate([elite[:, None], offspring], axis=1)
 
-class GeneticAlgorithmDET(TournamentSelectionMixin, ElitismMixin, BaseGeneticAlgorithm): pass
-class GeneticAlgorithmDEP(ProportionateSelectionMixin, ElitismMixin, BaseGeneticAlgorithm): pass
+
+class GeneticAlgorithmDET(TournamentSelectionMixin, ElitismMixin, BaseGeneticAlgorithm):
+    pass
+
+
+class GeneticAlgorithmDEP(ProportionateSelectionMixin, ElitismMixin, BaseGeneticAlgorithm):
+    pass

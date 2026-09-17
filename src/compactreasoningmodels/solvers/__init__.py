@@ -1,15 +1,20 @@
 from compactreasoningmodels.solvers.base import BaseSolver
-from compactreasoningmodels.solvers.mac import MAC
-from compactreasoningmodels.solvers.genetic_algorithm import GeneticAlgorithmDET, GeneticAlgorithmDEP
-from compactreasoningmodels.solvers.gradient_descent import (
-    GDGlobalAdamSolver, GDGlobalSGDSolver,
-    GDGaussSeidelAdamSolver, GDGaussSeidelSGDSolver,
-    GDJacobiAdamSolver, GDJacobiSGDSolver,
-    GDBangBangSolver,
+from compactreasoningmodels.solvers.genetic_algorithm import (
+    GeneticAlgorithmDEP,
+    GeneticAlgorithmDET,
 )
-from compactreasoningmodels.solvers.search import BacktrackingSearch
+from compactreasoningmodels.solvers.gradient_descent import (
+    GDBangBangSolver,
+    GDGaussSeidelAdamSolver,
+    GDGaussSeidelSGDSolver,
+    GDGlobalAdamSolver,
+    GDGlobalSGDSolver,
+    GDJacobiAdamSolver,
+    GDJacobiSGDSolver,
+)
+from compactreasoningmodels.solvers.mac import MAC
 from compactreasoningmodels.solvers.model_solver import ModelSolver
-
+from compactreasoningmodels.solvers.search import BacktrackingSearch
 
 __all__ = [
     "BaseSolver",

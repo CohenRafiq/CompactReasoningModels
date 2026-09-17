@@ -1,10 +1,11 @@
 from abc import ABC, abstractmethod
+
 import numpy as np
+
 
 class StepAlignment(ABC):
     @abstractmethod
-    def align(self, trace1: np.ndarray, trace2: np.ndarray
-              ) -> tuple[np.ndarray, np.ndarray]:
+    def align(self, trace1: np.ndarray, trace2: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """
         Inputs:
         trace1: (B, C, steps_A)
@@ -16,9 +17,9 @@ class StepAlignment(ABC):
         """
         pass
 
+
 class MeanPoolingAlignment(StepAlignment):
-    def align(self, trace1: np.ndarray, trace2: np.ndarray
-              ) -> tuple[np.ndarray, np.ndarray]:
+    def align(self, trace1: np.ndarray, trace2: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """
         Align two solving traces by mean pooling along the steps dimension.
         """
@@ -26,9 +27,9 @@ class MeanPoolingAlignment(StepAlignment):
         aligned_trace2 = np.mean(trace2, axis=-1, keepdims=True)
         return aligned_trace1, aligned_trace2
 
+
 class LinearGradientPooling(StepAlignment):
-    def align(self, trace1: np.ndarray, trace2: np.ndarray
-              ) -> tuple[np.ndarray, np.ndarray]:
+    def align(self, trace1: np.ndarray, trace2: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """
         Align two solving traces by applying a linear gradient pooling along the steps dimension.
         """
@@ -37,11 +38,13 @@ class LinearGradientPooling(StepAlignment):
 
         return gradients1, gradients2
 
+
 """
 - Dynamic Time Warping
 - Autoencoder
 - PCA + Procrustes
 """
+
 
 class PCAProcrustesAlignment(StepAlignment):
     """
@@ -60,8 +63,13 @@ class PCAProcrustesAlignment(StepAlignment):
     that live in different but related coordinate systems.
     """
 
-    def __init__(self, K: int | None = None, n_components: int | None = None,
-                 allow_reflection: bool = False, allow_scaling: bool = False):
+    def __init__(
+        self,
+        K: int | None = None,
+        n_components: int | None = None,
+        allow_reflection: bool = False,
+        allow_scaling: bool = False,
+    ):
         """
         Args:
             K: target number of steps to resample both traces to.
@@ -98,8 +106,9 @@ class PCAProcrustesAlignment(StepAlignment):
         return out
 
     @staticmethod
-    def _pca_fit_transform(X: np.ndarray, Y: np.ndarray, n_components: int
-                            ) -> tuple[np.ndarray, np.ndarray]:
+    def _pca_fit_transform(
+        X: np.ndarray, Y: np.ndarray, n_components: int
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Jointly fit a PCA basis on the concatenation of X and Y (each (K, C))
         and project both onto the top n_components. Centers on the joint mean.
@@ -115,9 +124,9 @@ class PCAProcrustesAlignment(StepAlignment):
         return Xc, Yc
 
     @staticmethod
-    def _orthogonal_procrustes(X: np.ndarray, Y: np.ndarray,
-                                allow_reflection: bool, allow_scaling: bool
-                                ) -> tuple[np.ndarray, float]:
+    def _orthogonal_procrustes(
+        X: np.ndarray, Y: np.ndarray, allow_reflection: bool, allow_scaling: bool
+    ) -> tuple[np.ndarray, float]:
         """
         Solve for rotation R (and optional scale s) minimizing
         || X - s * Y @ R ||_F, i.e. align Y onto X.
@@ -140,15 +149,14 @@ class PCAProcrustesAlignment(StepAlignment):
 
         s = 1.0
         if allow_scaling:
-            var_Y = np.sum(Yc ** 2)
+            var_Y = np.sum(Yc**2)
             s = S.sum() / var_Y if var_Y > 1e-12 else 1.0
 
         return R, s
 
     # ---------- main API ----------
 
-    def align(self, trace1: np.ndarray, trace2: np.ndarray
-              ) -> tuple[np.ndarray, np.ndarray]:
+    def align(self, trace1: np.ndarray, trace2: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         B, C, steps_A = trace1.shape
         _, _, steps_B = trace2.shape
         K = self.K if self.K is not None else min(steps_A, steps_B)
@@ -169,9 +177,7 @@ class PCAProcrustesAlignment(StepAlignment):
             Xp, Yp = self._pca_fit_transform(X, Y, n_components)  # (K, n_components)
 
             # 3) Orthogonal Procrustes: rotate Y onto X.
-            R, s = self._orthogonal_procrustes(
-                Xp, Yp, self.allow_reflection, self.allow_scaling
-            )
+            R, s = self._orthogonal_procrustes(Xp, Yp, self.allow_reflection, self.allow_scaling)
 
             X_mean = Xp.mean(axis=0, keepdims=True)
             Y_mean = Yp.mean(axis=0, keepdims=True)
@@ -180,7 +186,6 @@ class PCAProcrustesAlignment(StepAlignment):
             Y_aligned = s * (Yp - Y_mean) @ R + X_mean  # bring Y into X's frame
 
             aligned1[b] = (Xc + X_mean).T  # (n_components, K)
-            aligned2[b] = Y_aligned.T      # (n_components, K)
+            aligned2[b] = Y_aligned.T  # (n_components, K)
 
         return aligned1, aligned2
-        

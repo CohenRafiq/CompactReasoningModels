@@ -1,4 +1,5 @@
 from compactreasoningmodels import datasets, loggers, losses, models, trainers, utils
+
 from .datasets import NonogramDataset
 from .loggers import BaseLogger, NullLogger, WandbLogger
 from .losses import AbstainLoss, BaseCriterion, ClueReconstructionLoss

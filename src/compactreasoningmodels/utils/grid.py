@@ -3,6 +3,7 @@ from itertools import groupby
 
 import numpy as np
 import torch
+
 from compactreasoningmodels.utils.puzzle_types import Grid
 
 
@@ -16,9 +17,7 @@ def get_line_clues(line: Iterable[int] | torch.Tensor, K: int | None = None):
 
     padded = runs[:K] + [0] * (K - len(runs))
     return (
-        torch.tensor(padded, dtype=torch.float32)
-        if is_tensor
-        else np.array(padded, dtype=np.int32)
+        torch.tensor(padded, dtype=torch.float32) if is_tensor else np.array(padded, dtype=np.int32)
     )
 
 
@@ -52,8 +51,8 @@ def batch_line_clues(lines: np.ndarray, K: int) -> tuple[np.ndarray, np.ndarray]
     padded[:, 1:-1] = lines
     diff = np.diff(padded, axis=1)
 
-    is_start = (diff == 1)
-    is_end = (diff == -1)
+    is_start = diff == 1
+    is_end = diff == -1
 
     start_counts = np.cumsum(is_start, axis=1)
     num_runs = start_counts[:, -1]
@@ -69,9 +68,7 @@ def batch_line_clues(lines: np.ndarray, K: int) -> tuple[np.ndarray, np.ndarray]
     return run_lengths, num_runs
 
 
-def normalise_clues(
-    clues: np.ndarray | torch.Tensor
-) -> np.ndarray:
+def normalise_clues(clues: np.ndarray | torch.Tensor) -> np.ndarray:
     arr = clues.detach().cpu().numpy() if isinstance(clues, torch.Tensor) else np.asarray(clues)
     rows, cols = grid_shape_from_clues(arr)
     k_row = (cols + 1) // 2
@@ -128,6 +125,7 @@ def unpad_clue(clue) -> tuple[int, ...]:
             flat.append(int(item))
     return tuple(b for b in flat if b > 0)
 
+
 def pad_clues(clues: list[list[int]], pad_value=0):
     grid_side_length = max(len(clues[0]), len(clues[1]))
     k = (grid_side_length + 1) // 2
@@ -135,9 +133,10 @@ def pad_clues(clues: list[list[int]], pad_value=0):
     padded_tensor = torch.full(target_shape, pad_value, dtype=torch.float32)
     for i, clue_set in enumerate(clues):
         for j, clue in enumerate(clue_set):
-            padded_tensor[i, j, :len(clue)] = torch.tensor(clue, dtype=torch.float32)
-    
+            padded_tensor[i, j, : len(clue)] = torch.tensor(clue, dtype=torch.float32)
+
     return padded_tensor
+
 
 def check_clue(line: np.ndarray, clue: np.ndarray, epsilon: float = 1e-2) -> bool:
     rounded = ternarise(np.asarray(line), epsilon).tolist()
@@ -157,6 +156,7 @@ def is_solved(clues: np.ndarray, grid: np.ndarray, epsilon: float = 1e-2) -> boo
         check_clue(grid[:, j], col_clues[j], epsilon) for j in range(grid.shape[1])
     )
 
+
 def grid_shape_from_clues(clues: np.ndarray) -> tuple[int, int]:
     # TODO handle rectangular grids
     if clues.ndim == 3 and clues.shape[0] == 2:
@@ -170,6 +170,7 @@ def grid_shape_from_clues(clues: np.ndarray) -> tuple[int, int]:
             if rows * k_row + cols * k_col == flat_len:
                 return rows, cols
     raise ValueError(f"Cannot determine grid shape from clues with shape {clues.shape}")
+
 
 def blank_grid(rows: int, cols: int) -> np.ndarray:
     return np.full((rows, cols), 0.5, dtype=np.float32)

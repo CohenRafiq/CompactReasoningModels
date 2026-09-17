@@ -2,16 +2,15 @@ import numpy as np
 import torch
 
 from compactreasoningmodels.losses.base import BaseCriterion
-from compactreasoningmodels.solvers import BaseSolver
 from compactreasoningmodels.losses.clue_reconstruction import ClueReconstructionLoss
+from compactreasoningmodels.solvers import BaseSolver
+
 
 class BaseGradientDescentSolver(BaseSolver):
-
     def __init__(self, loss_fn: BaseCriterion | None = None, **kwargs):
         self.loss_fn = loss_fn if loss_fn is not None else ClueReconstructionLoss(reduction="none")
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         super().__init__(**kwargs)
-
 
     def _sample_grid(self, n: int, sampling_ratio: float) -> torch.Tensor:
         return (torch.rand(n, device=self.device) < sampling_ratio).float()
@@ -28,12 +27,14 @@ class BaseGradientDescentSolver(BaseSolver):
         Called inside a `torch.no_grad()` block by the update mixins."""
         raise NotImplementedError
 
-    def _optimise(self, prev: torch.Tensor, n: int, sampling_ratio: float,
-        tensor_clues: torch.Tensor) -> torch.Tensor:
+    def _optimise(
+        self, prev: torch.Tensor, n: int, sampling_ratio: float, tensor_clues: torch.Tensor
+    ) -> torch.Tensor:
         raise NotImplementedError
 
-    def _step(self, clues: np.ndarray, prev: np.ndarray,
-        num_steps: int, sampling_ratio: float = 1.0) -> np.ndarray:
+    def _step(
+        self, clues: np.ndarray, prev: np.ndarray, num_steps: int, sampling_ratio: float = 1.0
+    ) -> np.ndarray:
         tensor_clues = torch.tensor(
             np.asarray(clues).flatten(), dtype=torch.float32, device=self.device
         ).unsqueeze(0)
@@ -60,8 +61,8 @@ class BaseGradientDescentSolver(BaseSolver):
 # Optimiser mixins
 # =============================================================================
 
-class AdamOptimizerMixin:
 
+class AdamOptimizerMixin:
     default_step_ratio: int = 5
 
     def __init__(
@@ -98,8 +99,8 @@ class AdamOptimizerMixin:
         self._m[idxs] = m
         self._v[idxs] = v
 
-        m_hat = m / (1 - self.beta1 ** t)
-        v_hat = v / (1 - self.beta2 ** t)
+        m_hat = m / (1 - self.beta1**t)
+        v_hat = v / (1 - self.beta2**t)
 
         return self.step_size * m_hat / (v_hat.sqrt() + self.eps)
 
@@ -117,14 +118,13 @@ class AdamOptimizerMixin:
         self._m[idxs] = m
         self._v[idxs] = v
 
-        m_hat = m / (1 - self.beta1 ** t)
-        v_hat = v / (1 - self.beta2 ** t)
+        m_hat = m / (1 - self.beta1**t)
+        v_hat = v / (1 - self.beta2**t)
 
         return self.step_size * m_hat / (v_hat.sqrt() + self.eps)
 
 
 class SGDOptimizerMixin:
-
     default_step_ratio: int = 3
 
     def __init__(self, step_size: float = 70.0, **kwargs):
@@ -143,7 +143,6 @@ class SGDOptimizerMixin:
 
 
 class BangBangOptimizerMixin:
-
     default_step_ratio: int = 3
 
     def __init__(self, step_size: float = 10.0, **kwargs):
@@ -164,8 +163,8 @@ class BangBangOptimizerMixin:
 # Update-strategy mixins
 # =============================================================================
 
-class GlobalMixin:
 
+class GlobalMixin:
     def _optimise(
         self,
         prev: torch.Tensor,
@@ -195,7 +194,6 @@ class GlobalMixin:
 
 
 class GaussSeidelMixin:
-
     def _optimise(
         self,
         prev: torch.Tensor,
@@ -211,15 +209,11 @@ class GaussSeidelMixin:
             return grid.view(prev.shape)
 
         order = idxs[torch.randperm(idxs.numel(), device=self.device)]
-        num_selected = order.numel()
 
         # Pre-allocate reusable tensor for the candidate grid
         candidate_buf = grid.clone()
 
-        # Pre-compute clue tensor repeat for efficiency
-        clues_repeated = tensor_clues.expand(num_selected, -1)
-
-        for i_pos, i in enumerate(order):
+        for _, i in enumerate(order):
             i_scalar = i.item()
 
             fixed_val = grid[i].clone()
@@ -236,7 +230,7 @@ class GaussSeidelMixin:
             grad = torch.autograd.grad(loss, candidate_buf)[0]
 
             with torch.no_grad():
-                grad_i = grad[i_scalar:i_scalar+1]
+                grad_i = grad[i_scalar : i_scalar + 1]
                 update = self._compute_update(grad_i, i.unsqueeze(0))
                 grid[i] = fixed_val - update
 
@@ -247,7 +241,6 @@ class GaussSeidelMixin:
 
 
 class JacobiMixin:
-
     def _optimise(
         self,
         prev: torch.Tensor,
@@ -304,7 +297,7 @@ class JacobiMixin:
         Default implementation falls back to per-cell computation."""
         updates = []
         for i in range(idxs.numel()):
-            update = self._compute_update(grads[i:i+1], idxs[i:i+1])
+            update = self._compute_update(grads[i : i + 1], idxs[i : i + 1])
             updates.append(update)
         return torch.cat(updates)
 
@@ -313,17 +306,30 @@ class JacobiMixin:
 # Concrete solvers
 # =============================================================================
 
+
 class GDGlobalAdamSolver(AdamOptimizerMixin, GlobalMixin, BaseGradientDescentSolver):
     pass
+
+
 class GDGlobalSGDSolver(SGDOptimizerMixin, GlobalMixin, BaseGradientDescentSolver):
     pass
+
+
 class GDGaussSeidelAdamSolver(AdamOptimizerMixin, GaussSeidelMixin, BaseGradientDescentSolver):
     pass
+
+
 class GDGaussSeidelSGDSolver(SGDOptimizerMixin, GaussSeidelMixin, BaseGradientDescentSolver):
     pass
+
+
 class GDJacobiAdamSolver(AdamOptimizerMixin, JacobiMixin, BaseGradientDescentSolver):
     pass
+
+
 class GDJacobiSGDSolver(SGDOptimizerMixin, JacobiMixin, BaseGradientDescentSolver):
     pass
+
+
 class GDBangBangSolver(BangBangOptimizerMixin, GlobalMixin, BaseGradientDescentSolver):
     pass

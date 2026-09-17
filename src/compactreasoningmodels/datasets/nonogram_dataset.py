@@ -1,8 +1,8 @@
 import json
+import os
 from collections.abc import Iterator
 from pathlib import Path
 from typing import cast
-import os
 
 import numpy as np
 import torch
@@ -202,8 +202,14 @@ class NonogramDataset(Dataset):
         def mask(line: list[int]) -> list[float]:
             return [0.0] * len(line) + [-torch.inf] * (max_runs_in_clue - len(line))
 
-        padded = [[[pad(line) for line in (group if group else [[0]])] for group in puzzle] for puzzle in clues]
-        masks = [[[mask(line) for line in (group if group else [[0]])] for group in puzzle] for puzzle in clues]
+        padded = [
+            [[pad(line) for line in (group if group else [[0]])] for group in puzzle]
+            for puzzle in clues
+        ]
+        masks = [
+            [[mask(line) for line in (group if group else [[0]])] for group in puzzle]
+            for puzzle in clues
+        ]
         return (
             torch.tensor(padded, dtype=torch.float32).flatten(start_dim=1),
             torch.tensor(masks, dtype=torch.float32).flatten(start_dim=1),
@@ -343,7 +349,10 @@ class NonogramDataset(Dataset):
     def __len__(self) -> int:
         return len(self.X)
 
-    def __getitem__(self, idx: int,) -> tuple[torch.Tensor, torch.Tensor | None, torch.Tensor, dict]:
+    def __getitem__(
+        self,
+        idx: int,
+    ) -> tuple[torch.Tensor, torch.Tensor | None, torch.Tensor, dict]:
         return {
             "X": self.X[idx],
             "y": self.y[idx],

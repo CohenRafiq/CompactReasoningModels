@@ -205,7 +205,9 @@ def run_training_debug(criterion, grid_bin, clues, steps=2000, lr=0.1, log_every
         grad_norm = logits.grad.norm().item()
         opt.step()
 
-        history.append({**{k: v for k, v in out.items() if isinstance(v, float)}, "grad_norm": grad_norm})
+        history.append(
+            {**{k: v for k, v in out.items() if isinstance(v, float)}, "grad_norm": grad_norm}
+        )
 
         if last_loss is not None and abs(loss.item() - last_loss) < 1e-6:
             plateau_count += 1
@@ -216,7 +218,8 @@ def run_training_debug(criterion, grid_bin, clues, steps=2000, lr=0.1, log_every
         if step % log_every == 0 or step == steps - 1:
             print(
                 f"  step {step:5d} | loss={loss.item():.5f} "
-                f"(main={out['main_term']:.5f} aux={out['aux_term']:.5f} ent={out['entropy_term']:.5f}) "
+                f"(main={out['main_term']:.5f} aux={out['aux_term']:.5f} "
+                f"ent={out['entropy_term']:.5f}) "
                 f"| grad_norm={grad_norm:.2e} | sat={out['mean_saturation']:.3f} "
                 f"| match={out['clue_match_pct']:.3f} aux_w={out['aux_weight']:.2f}"
             )
@@ -225,7 +228,10 @@ def run_training_debug(criterion, grid_bin, clues, steps=2000, lr=0.1, log_every
             print(f"  -> STOPPED at step {step}: loss flat AND grad_norm ~0 (saturation dead zone)")
             break
         if plateau_count > 50 and grad_norm >= 1e-5:
-            print(f"  -> loss flat at step {step} but grad_norm={grad_norm:.2e} nonzero: REAL local min")
+            print(
+                f"  -> loss flat at step {step} but "
+                f"grad_norm={grad_norm:.2e} nonzero: REAL local min"
+            )
             break
 
     final = history[-1]

@@ -1,21 +1,21 @@
-from matplotlib.path import Path
+import os
+
 import numpy as np
 import torch
-import os
+from matplotlib.path import Path
 
 from compactreasoningmodels.models.base import BaseModel
 from compactreasoningmodels.models.recursive_gridmlp import RecursiveGridMLP
 from compactreasoningmodels.solvers import BaseSolver
 from compactreasoningmodels.utils.load_model import load_model
 
-class ModelSolver(BaseSolver):
 
+class ModelSolver(BaseSolver):
     default_step_ratio: int = 1
     default_model_path: str = os.path.join(
-        os.getenv("MODEL_DIR", "./models/"),
-        "jsonldataset/recursivegridmlp/06.pt"
+        os.getenv("MODEL_DIR", "./models/"), "jsonldataset/recursivegridmlp/06.pt"
     )
-    
+
     def __init__(self, model: BaseModel | str | Path | None = None):
         if model is None or isinstance(model, (str, Path)):
             path = model if model is not None else self.default_model_path
@@ -41,8 +41,10 @@ class ModelSolver(BaseSolver):
             return compressed.cpu().detach().numpy()
         else:
             return reshaped_logits.cpu().detach().numpy()
-        
-    def _step(self, clues: np.ndarray, prev: np.ndarray, num_steps: int, sampling_ratio: float) -> np.ndarray:
+
+    def _step(
+        self, clues: np.ndarray, prev: np.ndarray, num_steps: int, sampling_ratio: float
+    ) -> np.ndarray:
         grid_shape = prev.shape
         if sampling_ratio < 1.0:
             self.model.train()
@@ -51,7 +53,9 @@ class ModelSolver(BaseSolver):
                     module.p = 1.0 - sampling_ratio
         else:
             self.model.eval()
-        tensor_clues = torch.from_numpy(np.ascontiguousarray(clues)).flatten().unsqueeze(0).to(self.device)
+        tensor_clues = (
+            torch.from_numpy(np.ascontiguousarray(clues)).flatten().unsqueeze(0).to(self.device)
+        )
         with torch.no_grad():
             layer_logits = self.model.full_forward(tensor_clues, num_steps)
         list_grids = [self._logits_to_grid(logits, grid_shape) for logits in layer_logits]

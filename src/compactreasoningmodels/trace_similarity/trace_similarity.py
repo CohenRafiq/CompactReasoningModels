@@ -7,8 +7,9 @@ Output:
 Similarity score: Scalar value [0-1]
 """
 
-from compactreasoningmodels.trace_similarity.step_alignment import StepAlignment
 import numpy as np
+
+from compactreasoningmodels.trace_similarity.step_alignment import StepAlignment
 
 
 class TraceSimilarity:

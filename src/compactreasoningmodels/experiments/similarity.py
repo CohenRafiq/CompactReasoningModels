@@ -1,16 +1,22 @@
-from compactreasoningmodels.trace_comparison import (
-    Experiment, CKABlock, FlattenBlock, MSEBlock, MDSBlock, DTWBlock
-    )
-import pandas as pd
 import numpy as np
+import pandas as pd
 import torch
+
+from compactreasoningmodels.trace_comparison import (
+    CKABlock,
+    DTWBlock,
+    Experiment,
+    FlattenBlock,
+    MDSBlock,
+    MSEBlock,
+)
 
 
 def generate_pair(n, k):
     a = np.random.randint(0, n, size=k)
     b = np.random.randint(0, n, size=k)
     while np.any(b == a):
-        collide = (b == a)
+        collide = b == a
         b[collide] = np.random.randint(0, n, size=collide.sum())
     return a, b
 
@@ -21,7 +27,7 @@ def extract_steps(traces_dict):
     result = {}
     for solver, versions in traces_dict.items():
         try:
-            result[solver] = versions['1.0'][0]['steps']
+            result[solver] = versions["1.0"][0]["steps"]
         except (KeyError, IndexError, TypeError):
             result[solver] = None
     return result
@@ -32,7 +38,7 @@ def load_data(location, k=200, seed=None):
         np.random.seed(seed)
 
     df = pd.read_json(location, lines=True)
-    df = df['traces'].apply(extract_steps).apply(pd.Series)
+    df = df["traces"].apply(extract_steps).apply(pd.Series)
     idx_left, idx_right = generate_pair(len(df), k)
 
     output = {}
@@ -83,9 +89,7 @@ def compute_similarity_grids(data, experiment="CKA"):
 
             left_arr = [np.asarray(item, dtype=np.float32) for item in left]
             right_arr = [np.asarray(item, dtype=np.float32) for item in right]
-            torch_data = torch.tensor(
-                np.stack([left_arr, right_arr], axis=0), dtype=torch.float32
-            )
+            torch_data = torch.tensor(np.stack([left_arr, right_arr], axis=0), dtype=torch.float32)
 
             # Fresh Experiment instance per pair to avoid state leaking across runs
             exp = Experiment(blocks=build_blocks(experiment), name=f"{solver1} vs {solver2}")
@@ -103,7 +107,6 @@ def compute_similarity_grids(data, experiment="CKA"):
                 std_grid.loc[solver2, solver1] = std_val
 
     return {"mean": mean_grid, "std": std_grid}
-
 
 
 def main(experiment="DTW"):

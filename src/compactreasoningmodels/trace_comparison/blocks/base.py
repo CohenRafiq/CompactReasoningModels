@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import Tuple
+
 import torch
 
+
 class Block(ABC):
-    
     def __init__(self, name: str = ""):
         self.name = name or self.__class__.__name__
         self.requires_numpy = False
@@ -11,21 +11,21 @@ class Block(ABC):
         self.output_shape = None
 
     @abstractmethod
-    def check_input_shape(self, input_shape: Tuple[int, ...]) -> None:
-        pass
-    
-    @abstractmethod
-    def _output_shape(self, input_shape: Tuple[int, ...]) -> Tuple[int, ...]:
+    def check_input_shape(self, input_shape: tuple[int, ...]) -> None:
         pass
 
-    def compute_output_shape(self, input_shape: Tuple[int, ...]) -> Tuple[int, ...]:
+    @abstractmethod
+    def _output_shape(self, input_shape: tuple[int, ...]) -> tuple[int, ...]:
+        pass
+
+    def compute_output_shape(self, input_shape: tuple[int, ...]) -> tuple[int, ...]:
         self.check_input_shape(input_shape)
         return self._output_shape(input_shape)
-    
+
     @abstractmethod
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         pass
-    
+
     def __call__(self, data: torch.Tensor) -> torch.Tensor:
         self.input_shape = data.shape
         self.check_input_shape(data.shape)
@@ -37,6 +37,9 @@ class Block(ABC):
                 f"computed output shape {self._output_shape(self.input_shape)}"
             )
         return output
-    
+
     def __repr__(self):
-        return f"{self.__class__.__name__}(input_shape={self.input_shape}, output_shape={self.output_shape})"
+        return (
+            f"{self.__class__.__name__}(input_shape={self.input_shape}, "
+            f"output_shape={self.output_shape})"
+         )

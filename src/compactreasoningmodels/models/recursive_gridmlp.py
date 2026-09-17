@@ -62,7 +62,7 @@ class RecursiveGridMLP(BaseModel):
             out = self.residual_block(out)
 
         return self.fc(out)
-    
+
     def full_forward(self, x: Tensor, layer_num: int | None = None) -> Tensor:
         if x.dim() != 2:
             raise ValueError(f"Expected 2-D input, got {x.dim()}D")
