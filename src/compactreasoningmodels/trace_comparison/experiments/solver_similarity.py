@@ -19,6 +19,7 @@ class FullDatasetSimilarityExperiment(BaseExperiment):
         for block in self.blocks:
             current_data = block(current_data)
         self.correlation_matrix = current_data
+        return current_data
 
     def get_correlation_matrix(self) -> torch.Tensor:
         if not hasattr(self, "correlation_matrix"):

@@ -64,6 +64,10 @@ class BaseGradientDescentSolver(BaseSolver):
 
 class AdamOptimizerMixin:
     default_step_ratio: int = 5
+    device: torch.device
+    _m: torch.Tensor | None
+    _v: torch.Tensor | None
+    _t: torch.Tensor | None
 
     def __init__(
         self,
@@ -88,6 +92,7 @@ class AdamOptimizerMixin:
         self._t = torch.zeros(n, dtype=torch.long, device=self.device)
 
     def _compute_update(self, grad: torch.Tensor, idxs: torch.Tensor) -> torch.Tensor:
+        assert self._m is not None and self._v is not None and self._t is not None
         self._t[idxs] = self._t[idxs] + 1
         t = self._t[idxs]
 
@@ -106,6 +111,7 @@ class AdamOptimizerMixin:
 
     def _compute_update_batch(self, grads: torch.Tensor, idxs: torch.Tensor) -> torch.Tensor:
         """Vectorized Adam update for a batch of cells."""
+        assert self._m is not None and self._v is not None and self._t is not None
         self._t[idxs] = self._t[idxs] + 1
         t = self._t[idxs].float()
 
@@ -165,6 +171,9 @@ class BangBangOptimizerMixin:
 
 
 class GlobalMixin:
+    device: torch.device
+    loss_fn: BaseCriterion
+
     def _optimise(
         self,
         prev: torch.Tensor,
@@ -172,7 +181,7 @@ class GlobalMixin:
         sampling_ratio: float,
         tensor_clues: torch.Tensor,
     ) -> torch.Tensor:
-        weight = self._sample_grid(n, sampling_ratio)
+        weight = self._sample_grid(n, sampling_ratio)  # type: ignore[attr-defined]
 
         anchor = prev.flatten().detach()
         flat_logits = anchor.clone().requires_grad_(True)
@@ -186,7 +195,7 @@ class GlobalMixin:
 
         with torch.no_grad():
             all_idxs = torch.arange(anchor.numel(), device=self.device)
-            update = self._compute_update(grad, all_idxs)
+            update = self._compute_update(grad, all_idxs)  # type: ignore[attr-defined]
             flat_opt = flat_logits - update
             blended = anchor + weight * (flat_opt - anchor)
 
@@ -194,6 +203,9 @@ class GlobalMixin:
 
 
 class GaussSeidelMixin:
+    device: torch.device
+    loss_fn: BaseCriterion
+
     def _optimise(
         self,
         prev: torch.Tensor,
@@ -201,7 +213,7 @@ class GaussSeidelMixin:
         sampling_ratio: float,
         tensor_clues: torch.Tensor,
     ) -> torch.Tensor:
-        mask = self._sample_mask(n, sampling_ratio)
+        mask = self._sample_mask(n, sampling_ratio)  # type: ignore[attr-defined]
         idxs = mask.nonzero(as_tuple=True)[0]
 
         grid = prev.flatten().clone().detach()
@@ -231,7 +243,7 @@ class GaussSeidelMixin:
 
             with torch.no_grad():
                 grad_i = grad[i_scalar : i_scalar + 1]
-                update = self._compute_update(grad_i, i.unsqueeze(0))
+                update = self._compute_update(grad_i, i.unsqueeze(0))  # type: ignore[attr-defined]
                 grid[i] = fixed_val - update
 
             # Detach for next iteration
@@ -241,6 +253,9 @@ class GaussSeidelMixin:
 
 
 class JacobiMixin:
+    device: torch.device
+    loss_fn: BaseCriterion
+
     def _optimise(
         self,
         prev: torch.Tensor,
@@ -248,7 +263,7 @@ class JacobiMixin:
         sampling_ratio: float,
         tensor_clues: torch.Tensor,
     ) -> torch.Tensor:
-        mask = self._sample_mask(n, sampling_ratio)
+        mask = self._sample_mask(n, sampling_ratio)  # type: ignore[attr-defined]
         idxs = mask.nonzero(as_tuple=True)[0]
 
         grid = prev.flatten().clone().detach()
@@ -283,6 +298,7 @@ class JacobiMixin:
         total_loss.backward()
 
         grads = free_vals.grad  # (num_selected,)
+        assert grads is not None
 
         with torch.no_grad():
             updates = self._compute_update_batch(grads, order)
@@ -297,7 +313,7 @@ class JacobiMixin:
         Default implementation falls back to per-cell computation."""
         updates = []
         for i in range(idxs.numel()):
-            update = self._compute_update(grads[i : i + 1], idxs[i : i + 1])
+            update = self._compute_update(grads[i : i + 1], idxs[i : i + 1])  # type: ignore[attr-defined]
             updates.append(update)
         return torch.cat(updates)
 

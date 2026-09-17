@@ -9,7 +9,10 @@ from compactreasoningmodels.utils.puzzle_types import Grid
 
 def get_line_clues(line: Iterable[int] | torch.Tensor, K: int | None = None):
     is_tensor = isinstance(line, torch.Tensor)
-    values = line.detach().cpu().tolist() if is_tensor else list(line)
+    if is_tensor:
+        values = line.detach().cpu().tolist()  # type: ignore[union-attr]
+    else:
+        values = list(line)
     runs = [len(list(g)) for v, g in groupby(values) if v]
 
     if K is None:
@@ -126,7 +129,7 @@ def unpad_clue(clue) -> tuple[int, ...]:
     return tuple(b for b in flat if b > 0)
 
 
-def pad_clues(clues: list[list[int]], pad_value=0):
+def pad_clues(clues: list[list[list[int]]], pad_value=0):
     grid_side_length = max(len(clues[0]), len(clues[1]))
     k = (grid_side_length + 1) // 2
     target_shape = (2, grid_side_length, k)

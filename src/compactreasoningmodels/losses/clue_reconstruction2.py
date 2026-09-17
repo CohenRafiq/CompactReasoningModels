@@ -6,6 +6,7 @@ import torch.nn.functional as F
 
 class ClueReconstructionLoss(torch.nn.Module):
     clue_indices_template: torch.Tensor
+    _step: torch.Tensor
 
     def __init__(
         self,
@@ -61,7 +62,7 @@ class ClueReconstructionLoss(torch.nn.Module):
 
     def forward(self, grid: torch.Tensor, clues: torch.Tensor, debug: bool = False):
         if self.training:
-            self._step += 1
+            self._step.add_(1)
         aux_weight = self._current(self.aux_weight_start, self.aux_weight_end)
         entropy_weight = self._current(self.entropy_weight_start, self.entropy_weight_end)
 

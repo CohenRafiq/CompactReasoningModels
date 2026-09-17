@@ -7,8 +7,8 @@ class Block(ABC):
     def __init__(self, name: str = ""):
         self.name = name or self.__class__.__name__
         self.requires_numpy = False
-        self.input_shape = None
-        self.output_shape = None
+        self.input_shape: tuple[int, ...] | None = None
+        self.output_shape: tuple[int, ...] | None = None
 
     @abstractmethod
     def check_input_shape(self, input_shape: tuple[int, ...]) -> None:

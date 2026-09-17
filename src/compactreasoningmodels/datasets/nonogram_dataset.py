@@ -352,7 +352,7 @@ class NonogramDataset(Dataset):
     def __getitem__(
         self,
         idx: int,
-    ) -> tuple[torch.Tensor, torch.Tensor | None, torch.Tensor, dict]:
+    ) -> dict[str, object]:
         return {
             "X": self.X[idx],
             "y": self.y[idx],

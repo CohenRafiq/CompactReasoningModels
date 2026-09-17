@@ -5,10 +5,12 @@ import torch
 from compactreasoningmodels.trace_comparison import (
     CKABlock,
     DTWBlock,
-    Experiment,
     FlattenBlock,
     MDSBlock,
     MSEBlock,
+)
+from compactreasoningmodels.trace_comparison.experiments.solver_similarity import (  # type: ignore[attr-defined]
+    FullDatasetSimilarityExperiment as Experiment,
 )
 
 

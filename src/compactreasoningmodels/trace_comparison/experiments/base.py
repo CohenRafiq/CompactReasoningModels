@@ -36,7 +36,7 @@ class BaseExperiment(ABC):
                 f"Input shape must be 4D (solvers, batch, steps, grid), got {len(input_shape)}D"
             )
 
-        current_shape = input_shape
+        current_shape: tuple[int, ...] = input_shape
         for i, block in enumerate(self.blocks):
             try:
                 next_shape = block.compute_output_shape(current_shape)

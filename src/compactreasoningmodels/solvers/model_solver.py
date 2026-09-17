@@ -1,8 +1,8 @@
 import os
+from pathlib import Path
 
 import numpy as np
 import torch
-from matplotlib.path import Path
 
 from compactreasoningmodels.models.base import BaseModel
 from compactreasoningmodels.models.recursive_gridmlp import RecursiveGridMLP
@@ -19,7 +19,7 @@ class ModelSolver(BaseSolver):
     def __init__(self, model: BaseModel | str | Path | None = None):
         if model is None or isinstance(model, (str, Path)):
             path = model if model is not None else self.default_model_path
-            model = load_model(
+            self.model = load_model(
                 RecursiveGridMLP,
                 path,
                 device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
@@ -29,7 +29,8 @@ class ModelSolver(BaseSolver):
                 num_layers=9,
                 dropout=0.3,
             )
-        self.model = model
+        else:
+            self.model = model
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         super().__init__()
 

@@ -51,7 +51,7 @@ class MSEBlock(Block):
 
 
 class CorrelationMatrixWrapper(Block):
-    def __init__(self, base_block: Block, name: str = None):
+    def __init__(self, base_block: Block, name: str | None = None):
         if name is None:
             name = f"{base_block.name}_with_corr"
         super().__init__(name)

@@ -46,7 +46,7 @@ class BaseSolver(ABC):
         num_steps_actual = len(steps)
         if num_steps_actual > 0:
             # Stack all steps into a single tensor: (num_steps, H, W)
-            steps_tensor = torch.from_numpy(np.stack(steps)).float()
+            steps_tensor = torch.from_numpy(np.array(steps)).float()
             grid_flat = steps_tensor.reshape(num_steps_actual, -1)  # (num_steps, S)
 
             # Batch clues tensor: repeat for each step
@@ -74,18 +74,19 @@ class BaseSolver(ABC):
     def step(
         self,
         clues: Clues,
-        prev: np.ndarray = None,
+        prev: np.ndarray | None = None,
         num_steps: int = 1,
         sampling_ratio: float = 1.0,
         step_ratio: int | None = None,
     ) -> np.ndarray:
         if step_ratio is None:
             step_ratio = self.default_step_ratio
-        grid_shape = grid_shape_from_clues(clues)
-        clues = normalise_clues(clues)
+        clues_arr = np.array(clues)
+        grid_shape = grid_shape_from_clues(clues_arr)
+        clues_arr = normalise_clues(clues_arr)
         prev = prev if prev is not None else blank_grid(*grid_shape)
         actual_steps = (num_steps - 1) * step_ratio + 1
-        all_steps = self._step(clues, prev, int(actual_steps), sampling_ratio=sampling_ratio)
+        all_steps = self._step(clues_arr, prev, int(actual_steps), sampling_ratio=sampling_ratio)
         indices = np.linspace(0, len(all_steps) - 1, num_steps, dtype=int)
         return np.array([all_steps[i] for i in indices])
 
