@@ -3,7 +3,7 @@ import math
 import pytest
 import torch
 
-from compactreasoningmodels.losses.categorical_abstain import AbstainLoss
+from compactreasoningmodels.losses.abstain import AbstainLoss
 
 
 def test_output_channels():

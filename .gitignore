@@ -13,14 +13,20 @@ __pycache__/
 data/raw/*
 data/processed/*
 data/transformed/*
+data/traces/*
 models/*
 outputs/*
-experiments/artifacts/*
+run_experiments/artifacts/*
+results/*
 
 # Keep the folders (don't ignore the .gitkeep files)
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/transformed/.gitkeep
+!data/traces/.gitkeep
 
 # Wandb
 wandb/
+
+# Jupyter
+.ipynb_checkpoints/
