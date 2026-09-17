@@ -10,10 +10,8 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
-data/raw/*
-data/processed/*
-data/transformed/*
-data/traces/*
+data/base_dataset/nonograms/*
+data/traces_dataset/nonograms/*
 models/*
 outputs/*
 run_experiments/artifacts/*
