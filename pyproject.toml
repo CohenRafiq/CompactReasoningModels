@@ -10,7 +10,7 @@ build-backend = "hatchling.build"
 requires = ["hatchling"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/compactreasoningmodels"]
+packages = ["src/neural_models", "src/solvers", "src/trace_comparison", "src/utils", "src/base_dataset"]
 
 [tool.pixi.workspace]
 channels = ["conda-forge"]
@@ -43,22 +43,21 @@ ruff = ">=0.6"
 scipy-stubs = ">=1.15"
 torch = { version = ">=2.5.1", index = "https://download.pytorch.org/whl/cu128" }
 
-[tool.pixi.activation.env]
-PYTHONPATH = "$PIXI_PROJECT_ROOT:$PYTHONPATH"
-
 [tool.pixi.tasks]
-lint = "ruff check src scripts tests"
-format = "ruff format src scripts tests"
+lint = "ruff check src"
+format = "ruff format src"
 type-check = "mypy src"
-test = "pytest tests -q"
-train = "python scripts/train.py"
+test = "pytest src -q"
+train = "python src/neural_models/train.py"
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+extend-exclude = ["**/notebooks", "**/*.ipynb"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W", "UP", "B"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["src"]
+pythonpath = ["src"]
